@@ -1,0 +1,90 @@
+import { aiChatRequest, withAuth } from "@/utils/request.js";
+
+/**
+ * 查询当前用户的所有正常会话（未删除）
+ * 对应后端：GET /ai/chat/session/sessions/normal
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: Array<AiChatSession>, msg: string}
+ */
+export async function listUserNormalSessionsApi() {
+    return withAuth(aiChatRequest, {
+        url: '/ai/chat/session/sessions/normal',
+        method: 'GET' // 对应后端@GetMapping
+    })
+}
+
+/**
+ * 查询当前用户的回收站会话（已删除）
+ * 对应后端：GET /ai/chat/session/sessions/recycle
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: Array<AiChatSession>, msg: string}
+ */
+export async function listUserDeletedSessionsApi() {
+    return withAuth(aiChatRequest, {
+        url: '/ai/chat/session/sessions/recycle',
+        method: 'GET' // 对应后端@GetMapping
+    })
+}
+
+/**
+ * 置顶指定AI聊天会话
+ * 对应后端：POST /ai/chat/session/{sessionUuid}/top
+ * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: null, msg: string}
+ */
+export async function topChatSessionApi(sessionUuid) {
+    return withAuth(aiChatRequest, {
+        url: `/ai/chat/session/${sessionUuid}/top`,
+        method: 'POST'
+    })
+}
+
+/**
+ * 取消置顶指定AI聊天会话
+ * 对应后端：POST /ai/chat/session/{sessionUuid}/untop
+ * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: null, msg: string}
+ */
+export async function untopChatSessionApi(sessionUuid) {
+    return withAuth(aiChatRequest, {
+        url: `/ai/chat/session/${sessionUuid}/untop`,
+        method: 'POST'
+    })
+}
+
+/**
+ * 删除指定AI聊天会话（移入回收站）
+ * 对应后端：POST /ai/chat/session/{sessionUuid}/delete
+ * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: null, msg: string}
+ */
+export async function deleteChatSessionApi(sessionUuid) {
+    return withAuth(aiChatRequest, {
+        url: `/ai/chat/session/${sessionUuid}/delete`,
+        method: 'POST'
+    })
+}
+
+/**
+ * 复原指定AI聊天会话（移出回收站）
+ * 对应后端：POST /ai/chat/session/{sessionUuid}/recover
+ * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: null, msg: string}
+ */
+export async function recoverChatSessionApi(sessionUuid) {
+    return withAuth(aiChatRequest, {
+        url: `/ai/chat/session/${sessionUuid}/recover`,
+        method: 'POST'
+    })
+}
+
+/**
+ * 查询指定会话下的所有聊天消息
+ * 对应后端：GET /ai/chat/session/chat/messages/{sessionUuid}
+ * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式，如：550e8400-e29b-41d4-a716-446655440000）
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: Array<AiChatMessage>, msg: string}
+ */
+export async function listChatMessagesApi(sessionUuid) {
+    return withAuth(aiChatRequest, {
+        url: `/ai/chat/session/chat/messages/${sessionUuid}`,
+        method: 'GET'
+    })
+}

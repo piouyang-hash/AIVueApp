@@ -1,0 +1,150 @@
+/* ========== 全局基础变量（控制整体风格） ========== */
+/* 引入高级灰度体系颜色变量 */
+:root {
+    /* 高级灰度体系（核心）- 全 RGB 格式 */
+    --gray-50: rgb(248, 249, 250);     /* 银白：最浅背景，替代纯白 */
+    --gray-100: rgb(233, 236, 239);    /* 极浅灰：卡片/面板背景 */
+    --gray-200: rgb(222, 226, 230);    /* 浅灰：边框/分割线 */
+    --gray-300: rgb(206, 212, 218);    /* 中浅灰：次要元素 */
+    --gray-400: rgb(173, 181, 189);    /* 中灰：禁用状态/图标 */
+    --gray-500: rgb(108, 117, 125);    /* 深灰：次要文字 */
+    --gray-600: rgb(73, 80, 87);       /* 暗灰：主要文字 */
+    --gray-700: rgb(52, 58, 64);       /* 墨灰：强调文字 */
+    --gray-800: rgb(33, 37, 41);       /* 深墨灰：标题文字 */
+    --gray-900: rgb(18, 18, 18);       /* 墨黑：最深背景，替代纯黑 */
+
+    /* 点缀色（低饱和，提升高级感）- 全 RGB 格式 */
+    --primary-color: rgb(67, 74, 80);      /* 深灰蓝：主交互色 */
+    --secondary-color: rgb(108, 117, 125); /* 中灰：次要交互色 */
+    --accent-color: rgb(125, 132, 140);    /* 浅灰：强调色 */
+    --accent-color-rgb: 125, 132, 140;
+
+    /* ========== 浅色主题（银白基调）- 全 RGB 格式 ========== */
+    --bg-color: var(--gray-50);
+    --bg2-color: var(--gray-300);
+    --green-line: rgb(209, 232, 194);     /* 统一替换为 RGB */
+    --green-line-rgb: 209, 232, 194;
+    --card-bg: var(--gray-100);
+    --card-hover: rgb(255, 255, 255);     /* 白色转为 RGB */
+    --text-primary: var(--gray-800);
+    --text-secondary: var(--gray-600);
+    --text-tertiary: var(--gray-500);
+    --border-color: rgba(0, 0, 0, 0.08);   /* 透明色保留 RGBA */
+    --shadow-color: rgba(0, 0, 0, 0.05);  /* 透明色保留 RGBA */
+    --error-color: rgb(224, 49, 49);      /* 错误色 RGB */
+    --success-color: rgb(55, 178, 77);    /* 成功色 RGB */
+
+    /* 辅助变量 */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --shadow-sm: 0 2px 8px var(--shadow-color);
+
+    /* 自定义变量扩展 - 高级感核心调整 */
+    --control-bg: rgba(255, 255, 255, 0.95); /* 更高透明度，更通透 */
+    --control-bg-backdrop: rgba(255,255,255,0.6); /* 毛玻璃底层叠加，增强层次 */
+    --control-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04); /* 双层阴影，更有层次 */
+    --btn-hover-bg: rgba(0,0,0,0.03); /* 按钮悬浮：淡透明灰，更细腻 */
+    --btn-active-bg: rgba(0,0,0,0.06); /* 按钮激活：稍深透明灰，按压感 */
+    --btn-inner-glow: inset 0 1px 2px rgba(255,255,255,0.5); /* 按钮内发光，模拟金属质感 */
+    --progress-track: rgba(0,0,0,0.08); /* 进度条轨道：透明灰，更融合 */
+    --progress-fill: linear-gradient(90deg, var(--primary-color), #5a6066); /* 渐变填充，更有质感 */
+    --progress-fill-hover: linear-gradient(90deg, #3a4045, var(--primary-color)); /* hover渐变加深 */
+    --transition-default: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); /* 更自然的过渡曲线（加速后减速） */
+    --transition-slow: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); /* 慢过渡，用于重要元素 */
+}
+
+/* ========== 深色主题（墨黑基调） ========== */
+:root.dark {
+    /* 核心基础色 */
+    --bg-color: var(--gray-900);      /* 页面背景：墨黑 */
+    --bg2-color: var(--gray-600);
+    --card-bg: var(--gray-800);       /* 卡片背景：深墨灰 */
+    --card-hover: var(--gray-700);    /* 卡片悬浮：墨灰 */
+    --text-primary: var(--gray-50);   /* 主要文字：银白 */
+    --text-secondary: var(--gray-300);/* 次要文字：中浅灰 */
+    --text-tertiary: var(--gray-400); /* 提示文字：中灰 */
+    --border-color: rgba(255,255,255,0.12);  /* 边框：透明浅灰，适配暗黑 */
+    --shadow-color: rgba(0,0,0,0.3);  /* 阴影：更深但柔和，增强层次 */
+    --green-line: #2a472e;            /* 绿色线条：适配暗黑的暗绿 */
+    --error-color: #f06565;           /* 错误色：更亮一点，提升辨识度 */
+    --success-color: #4ade80;         /* 成功色：更通透的绿 */
+
+    /* 点缀色微调（暗黑下更通透） */
+    --primary-color: #adb5bd;
+    --secondary-color: #ced4da;
+    --accent-color: #dee2e6;
+    --accent-color-rgb: 222, 226, 230;
+
+    /* 拓展辅助变量（暗黑专属质感） */
+    --control-bg: rgba(33, 37, 41, 0.95); /* 控件背景：深墨灰半透，毛玻璃 */
+    --control-bg-backdrop: rgba(18, 18, 18, 0.8); /* 毛玻璃底层：贴合暗黑背景 */
+    --control-shadow: 0 2px 12px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.15); /* 双层阴影，更立体 */
+    --btn-hover-bg: rgba(255,255,255,0.05); /* 按钮悬浮：淡透明白，细腻 */
+    --btn-active-bg: rgba(255,255,255,0.1); /* 按钮激活：稍深透明白，按压感 */
+    --btn-inner-glow: inset 0 1px 2px rgba(0,0,0,0.3); /* 按钮内发光：暗黑金属质感 */
+    --progress-track: rgba(255,255,255,0.1); /* 进度条轨道：透明白，更融合 */
+    --progress-fill: linear-gradient(90deg, var(--primary-color), #c0c6cd); /* 渐变填充：暗黑下更亮 */
+    --progress-fill-hover: linear-gradient(90deg, #8e949b, var(--primary-color)); /* hover渐变：更有层次 */
+}
+
+/* ========== 中性高级灰主题（可选） ========== */
+:root.neutral {
+    --bg-color: var(--gray-200);
+    --card-bg: var(--gray-100);
+    --card-hover: var(--gray-50);
+    --text-primary: var(--gray-700);
+    --text-secondary: var(--gray-600);
+    --border-color: var(--gray-300);
+}
+/* 全局字体重置 - 核心：让所有元素继承统一字体 */
+/* 声明简体中文常规体 */
+@font-face {
+    font-family: 'HarmonyOS Sans SC';
+    src: url('../fonts/HarmonyOS_SansSC_Regular.ttf') format('truetype');
+    font-weight: normal; /* 对应 400 */
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 声明简体中文中粗体 */
+@font-face {
+    font-family: 'HarmonyOS Sans SC';
+    src: url('../fonts/HarmonyOS_SansSC_Medium.ttf') format('truetype');
+    font-weight: 500; /* 对应 Medium */
+    font-style: normal;
+    font-display: swap;
+}
+
+
+/* 可选：单独优化标题字体（比如你之前的.ai-name） */
+h1, h2, h3, h4, h5, h6, .ai-name {
+    font-weight: 500 !important; /* 标题字重稍重，不生硬 */
+}
+/* ========== 全局样式重置（配合主题） ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    /* 微信同款字体栈（优先中文字体，兼顾跨平台） */
+    font-family:
+            HarmonyOS Sans SC,
+            -apple-system,      /* 苹果兜底 */
+            "PingFang SC",      /* 苹果iOS/微信Mac版 */
+            "Microsoft YaHei",  /* Windows/微信PC版 */
+            "Noto Sans SC",     /* Android/微信安卓版 */
+
+            BlinkMacSystemFont,
+            "Segoe UI", Roboto, /* Windows/安卓兜底 */
+            "Helvetica Neue", Arial, sans-serif !important; /* 终极兜底 */
+
+    /* 可选：统一中文排版细节（让字体更美观） */
+
+    letter-spacing: 0.2px; /* 细微字间距，中文更精致 */
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
