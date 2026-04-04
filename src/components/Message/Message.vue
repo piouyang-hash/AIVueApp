@@ -1,197 +1,207 @@
 <template>
-  <div class="role-list-container">
-    <h3>微信同款侧滑（纯净版）</h3>
-
-    <div
-        class="role-item"
-        v-for="item in roleList"
-        :key="item.roleId"
-        @touchstart="handleTouchStart($event, item)"
-        @touchmove="handleTouchMove"
-        @touchend="handleTouchEnd"
-    >
-      <div class="slide-action" :style="{ pointerEvents: activeRoleId === item.roleId ? 'auto' : 'none' }">
-        <div class="btn-back" @click.stop="closeSlide">← 返回</div>
-        <div class="btn-create" @click.stop="handleCreateNewChat(item)">创建对话</div>
+  <div class="chat-container">
+    <div class="chat-box">
+      <div class="message-box" ref="messageBoxRef">
+        <div v-if="aiReply" class="ai-message">{{ aiReply }}</div>
+        <div v-if="loading" class="loading">AI 思考中...</div>
+        <div v-if="connectStatus" class="status">{{ connectStatus }}</div>
       </div>
 
-      <div
-          class="slide-content"
-          :class="{ 'is-animating': !isDragging }"
-          :style="{ transform: `translateX(${activeRoleId === item.roleId ? dragX : 0}px)` }"
-          @click="handleClickRole(item)"
-      >
-        <div class="avatar">
-          <img src="https://picsum.photos/100/100" class="avatar-img" />
-        </div>
-        <div class="role-info">
-          <h3 class="role-title">{{ item.roleDesc }}</h3>
-          <p class="role-desc">{{ item.personaTone }}</p>
-        </div>
+      <div class="input-box">
+        <input
+            v-model="userMessage"
+            @keyup.enter="sendMessage"
+            placeholder="输入消息，按回车发送..."
+            :disabled="loading"
+        />
+        <button @click="sendMessage" :disabled="loading || !userMessage.trim()">
+          {{ loading ? "发送中..." : "发送" }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onUnmounted, nextTick } from 'vue'
+// 引入你封装好的测试接口API
+// 引入WebSocket工具类（你之前的多实例版本）
+import WebSocketClient from '@/utils/websocketUtil'
+import {parseChatChunk, testAsyncStream} from "@/services/ai_chat.service.js";
 
-const roleList = ref([
-  { roleId: 1, roleDesc: "智能助手", personaTone: "温和专业" },
-  { roleId: 2, roleDesc: "编程导师", personaTone: "严谨简洁" },
-])
+// 配置项
+const BASE_URL = 'http://localhost:8086'
+const WS_URL = 'ws://localhost:8086/ai/chat/stream'
 
-const dragX = ref(0)
-const activeRoleId = ref(null)
-const isDragging = ref(false)
-const maxDrag = -220 // 最大左滑距离
+// 业务数据
+const userMessage = ref('')
+const aiReply = ref('')
+const loading = ref(false)
+const connectStatus = ref('')
+const messageBoxRef = ref(null)
 
-let startX = 0
-let lastDragX = 0
+// 双ID
+let sessionUuid = ''
+let taskId = ''
+let currentWsClient = null
 
-// 触摸开始
-const handleTouchStart = (e, item) => {
-  // 如果点击的是另一个，先关闭当前的
-  if (activeRoleId.value && activeRoleId.value !== item.roleId) {
-    closeSlide()
-    return
-  }
+// 发送消息（核心：替换为封装API，删除原生fetch）
+const sendMessage = async () => {
+  if (!userMessage.value.trim()) return
+  const msg = userMessage.value.trim()
 
-  activeRoleId.value = item.roleId
-  startX = e.touches[0].clientX
-  lastDragX = dragX.value // 记录初始位置（可能是0，也可能是-220）
-  isDragging.value = true
-}
+  // 🔥 必须传：前端持有的会话UUID（固定/生成都可以）
+  const frontSessionUuid = "3b9e4f9a-8346-4b0f-9d1e-8f7c6a5b4d3e"
 
-// 触摸移动
-const handleTouchMove = (e) => {
-  if (!isDragging.value) return
+  aiReply.value = ''
+  loading.value = true
+  connectStatus.value = '正在启动 AI 任务...'
 
-  const currentX = e.touches[0].clientX
-  const deltaX = currentX - startX
-  let finalX = lastDragX + deltaX
+  try {
+    // ==============================================
+    // 🔥 🔥 🔥 核心替换：用封装API替代原生fetch
+    // ==============================================
+    const result = await testAsyncStream(msg, frontSessionUuid);
 
-  // 边界控制：不允许向右过头，也不允许左滑超过阈值太多（增加阻尼感）
-  if (finalX > 0) finalX = 0
-  if (finalX < maxDrag - 20) finalX = maxDrag - 20
+        // 拆分 会话ID:任务ID
+        [sessionUuid, taskId] = result.split(':')
 
-  dragX.value = finalX
-}
+    connectStatus.value = '任务已启动，连接 WebSocket...'
+    connectAiWebSocket()
 
-// 触摸结束
-const handleTouchEnd = () => {
-  isDragging.value = false
-  // 逻辑判断：滑动超过 80px 就吸附打开，否则回弹
-  if (dragX.value < -80) {
-    dragX.value = maxDrag
-  } else {
-    closeSlide()
+  } catch (err) {
+    connectStatus.value = '请求失败，请重试！'
+    loading.value = false
+    console.error('接口调用失败：', err)
   }
 }
 
-const closeSlide = () => {
-  dragX.value = 0
-  activeRoleId.value = null
-}
-
-const handleClickRole = (item) => {
-  // 如果当前是打开状态，点击内容区改为收起
-  if (dragX.value !== 0) {
-    closeSlide()
-    return
+// 连接WebSocket（你之前的多实例版本，保持不变）
+const connectAiWebSocket = () => {
+  if (currentWsClient) {
+    currentWsClient.close()
   }
-  alert("进入详情：" + item.roleDesc)
+
+  currentWsClient = new WebSocketClient({
+    reconnectInterval: 3000,
+    maxReconnectTimes: 10
+  })
+
+  const fullWsUrl = `${WS_URL}?sessionUuid=${sessionUuid}&taskId=${taskId}`
+  currentWsClient.setWsUrl(fullWsUrl)
+
+  currentWsClient.on({
+    open: () => {
+      connectStatus.value = '✅ 连接成功，接收 AI 流式回复...'
+      loading.value = false
+    },
+    // 2. 核心：使用 parseChatChunk 解析 WebSocket 消息
+    message: (rawData) => {
+      parseChatChunk(
+          rawData,
+          // 回调1：首帧元数据（你之前的逻辑）
+          (meta) => {
+            console.log('收到首帧元数据', meta);
+            // 核心：把首帧里的AI回复内容拼接到页面
+            if (meta.aiReplyContent) {
+              aiReply.value += meta.aiReplyContent;
+              nextTick(() => {
+                messageBoxRef.value.scrollTop = messageBoxRef.value.scrollHeight;
+              });
+            }
+          },
+          // 普通文本帧（后续内容正常拼接）
+          (text) => {
+            aiReply.value += text;
+            nextTick(() => {
+              messageBoxRef.value.scrollTop = messageBoxRef.value.scrollHeight;
+            });
+          },
+          // 回调3：结束帧（替换原来的 [DONE]）
+          () => {
+            connectStatus.value = '✅ 回复完成'
+            loading.value = false
+          },
+          // 回调4：解析错误
+          (err) => {
+            console.warn('WebSocket消息解析失败', err)
+          }
+      )
+    },
+    close: () => {
+      connectStatus.value = '🔌 连接已断开'
+      loading.value = false
+    },
+    error: () => {
+      connectStatus.value = '❌ 连接失败'
+      loading.value = false
+    }
+  })
+
+  currentWsClient.connect()
 }
 
-const handleCreateNewChat = (item) => {
-  alert("动作触发：" + item.roleDesc)
-  closeSlide()
-}
+onUnmounted(() => {
+  if (currentWsClient) currentWsClient.close()
+})
 </script>
 
 <style scoped>
-.role-list-container {
-  max-width: 400px;
-  margin: 20px auto;
-  padding: 0 16px;
-}
-
-.role-item {
-  position: relative;
-  overflow: hidden;
-  background: #fff;
-  border-radius: 12px;
-  margin: 8px 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.slide-action {
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.chat-container {
+  max-width: 800px;
+  margin: 50px auto;
   padding: 0 20px;
-  z-index: 1;
 }
-
-.btn-back, .btn-create {
-  padding: 10px 16px;
+.chat-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f9fafb;
+}
+.message-box {
+  height: 500px;
+  padding: 20px;
+  overflow-y: auto;
+  border-bottom: 1px solid #e5e7eb;
+}
+.ai-message {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #111827;
+  white-space: pre-wrap;
+}
+.loading, .status {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 10px;
+}
+.input-box {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  background: white;
+}
+input {
+  flex: 1;
+  padding: 12px 15px;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-size: 14px;
-  white-space: nowrap;
+  outline: none;
 }
-
-.btn-back {
-  background: #f5f5f5;
-  color: #333;
+input:disabled {
+  background: #f3f4f6;
 }
-
-.btn-create {
-  background: #409eff;
+button {
+  padding: 12px 20px;
+  background: #4f46e5;
   color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
 }
-
-.slide-content {
-  position: relative;
-  z-index: 2;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  gap: 12px;
-  transition: transform 0.22s ease;
-  min-height: 70px;
-}
-
-.avatar-img {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.role-info {
-  flex: 1;
-}
-
-.role-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-}
-
-.role-desc {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #999;
-}
-
-.role-time {
-  font-size: 12px;
-  color: #ccc;
+button:disabled {
+  background: #a5b4fc;
+  cursor: not-allowed;
 }
 </style>

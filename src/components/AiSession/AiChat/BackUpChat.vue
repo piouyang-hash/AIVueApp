@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue'
+import {nextTick, ref} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 // 导入资源（仅保留顶部导航/输入框相关）
@@ -63,92 +63,17 @@ import HeartBeat from "@/components/AiSession/AiChat/heart-beat.vue";
 import MeridianVein from "@/components/AiSession/AiChat/meridian-vein.vue";
 import AIInput from "@/components/Tiny/AIInput.vue";
 import AiChatContent from "@/components/AiSession/AiChat/AiChatContent.vue";
-import {
-  parseChatChunk,
-  testAsyncStream,
-  userChatWithMemory,
-  userSlidingWindowStreamChat
-} from "@/services/ai_chat.service.js";
+import {parseChatChunk, userChatWithMemory, userSlidingWindowStreamChat} from "@/services/ai_chat.service.js";
 // 导入自治组件AiChatContent
 import { useSessionStore } from '@/stores/sessionStore.js'
-import { useAiMessageReceiverStore } from '@/stores/aiMessageReceiver'
 
 // 初始化新仓库
 const sessionStore = useSessionStore()
-const aiReceiver = useAiMessageReceiverStore()
 
 // 初始化实例（仅保留核心依赖）
 const route = useRoute()
 const router = useRouter()
 const aiChatContentRef = ref(null) // 可选：获取AiChatContent组件实例
-
-// AI是否正在回复（响应式状态，模板可用）
-const isAiReplying = computed(() => {
-  const currentSid = sessionStore.currentSessionUuid
-  // 无当前会话 → 未回复
-  if (!currentSid) return false
-  // 获取当前会话的所有任务
-  const taskList = sessionStore.sessionTaskMap[currentSid] || []
-  // 存在【进行中 pending】任务 → AI 正在回复
-  return taskList.some(task => task.status === 'pending')
-})
-
-// 🔥 【核心新增】页面加载 → 自动重连 WebSocket（触发后端补发）
-onMounted(() => {
-  console.log('======== 页面加载完成，尝试自动重连 WebSocket ========')
-  const sid = sessionStore.currentSessionUuid
-  const pendingTask = sessionStore.getCurrentPendingTask
-  const taskId = pendingTask.taskId
-
-  console.log('当前会话ID(sessionUuid)：', sid)
-  console.log('获取到的未完成任务：', pendingTask)
-  console.log('未完成任务ID(taskId)：', taskId)
-
-  // 判断条件
-  if (sid && taskId) {
-    console.log('✅ 满足重连条件，执行 aiReceiver.connect')
-    aiReceiver.connect(sid, taskId)
-  } else {
-    console.log('❌ 不满足重连条件：', !sid ? '缺少 sessionUuid' : '缺少 taskId / 无进行中任务')
-  }
-  console.log('=====================================================')
-})
-
-// ==============================================
-// 🔥 核心重写：适配新sessionStore的流式发送消息
-// ==============================================
-// 🔥 替换：HTTP流式取消 → WebSocket实例管理
-let currentWsClient = null
-let currentStreamCancel = null
-
-// ==============================================
-// 你的原有发送消息函数（仅替换流式请求部分）
-// ==============================================
-const handleAIInputSendMessage = async ({ content, sessionUuid }) => {
-  try {
-    sessionStore.setPlaceholderSession(sessionUuid)
-    // 插入用户消息
-    sessionStore.pushMessageToSession(sessionUuid, {
-      content, role: 'USER', createTime: new Date().toLocaleString()
-    })
-
-    await nextTick(() => aiChatContentRef.value?.scrollToBottom())
-
-    // 1. 获取任务ID
-    const uniqueKey = await testAsyncStream(content, sessionUuid)
-    const [wsSessionUuid, taskId] = uniqueKey.split(':')
-
-    // 2. 保存任务
-    sessionStore.addSessionTask(sessionUuid, taskId)
-
-    // 3. 🔥 全局建立连接（一行代码）
-    aiReceiver.connect(wsSessionUuid, taskId)
-
-  } catch (err) {
-    console.error('发送失败：', err)
-  }
-}
-
 
 // ========== 仅保留父组件专属逻辑 ==========
 // 返回按钮逻辑
@@ -163,8 +88,8 @@ const handleAddIconClick = () => {
 
 // 可选：接收AiChatContent组件的头像点击事件（按需扩展）
 const handleAvatarClick = ({ item, index }) => {
-// 父组件可在此扩展头像点击逻辑（比如删除消息、复制内容等）
-// 基础日志保留（也可删除，子组件内部已打印）
+  // 父组件可在此扩展头像点击逻辑（比如删除消息、复制内容等）
+  // 基础日志保留（也可删除，子组件内部已打印）
   const roleText = item.role === 'USER' ? '用户' : 'AI助手'
   console.log(`父组件接收：点击了第${index+1}条${roleText}消息的头像`);
 };
@@ -172,12 +97,108 @@ const handleAvatarClick = ({ item, index }) => {
 // 可选：监听AiChatContent初始化完成
 const handleInitComplete = () => {
   console.log('AI聊天内容区初始化完成');
-// 如需在初始化后执行额外逻辑，可在此处理
+  // 如需在初始化后执行额外逻辑，可在此处理
 };
+
+// 存储当前流式请求的取消函数（新消息时取消上一次请求）
+let currentStreamCancel = null;
+// AI是否正在回复（响应式状态，模板可用）
+const isAiReplying = ref(false);
+
+// ==============================================
+// 🔥 核心重写：适配新sessionStore的流式发送消息
+// ==============================================
+const handleAIInputSendMessage = async ({ content, sessionUuid }) => {
+  try {
+    console.log('父组件接收到AIInput消息：', { content, sessionUuid });
+
+    sessionStore.setPlaceholderSession(sessionUuid);
+
+    // ========== 步骤1：展示用户消息（存入当前会话） ==========
+    const userMessage = {
+      content: content,
+      role: 'USER',
+      createTime: new Date().toLocaleString()
+    }
+    sessionStore.pushMessageToSession(sessionUuid, userMessage)
+
+    // 发送消息滚动到底部
+    await nextTick(() => {
+      aiChatContentRef.value?.scrollToBottom()
+    })
+
+    // ========== 步骤2：取消上一次未完成的流式请求 ==========
+    if (currentStreamCancel) {
+      currentStreamCancel();
+      console.log('因新消息触发，取消上一次流式请求');
+      isAiReplying.value = false;
+    }
+
+    // ========== 步骤3：初始化变量 ==========
+    const finalSessionUuid = sessionUuid;
+    let aiMessageId = null;
+    isAiReplying.value = true;
+
+    // ========== 步骤4：调用流式AI接口 ==========
+    currentStreamCancel = userSlidingWindowStreamChat(
+        content,
+        finalSessionUuid,
+        (chunk) => {
+          parseChatChunk(
+              chunk,
+              (meta) => {
+                console.log('✅ 首帧元数据', meta);
+                const newSessionUuid = meta.sessionUuid;
+                const targetSessionUuid = newSessionUuid || finalSessionUuid;
+
+                if (!finalSessionUuid && newSessionUuid) {
+                  sessionStore.setCurrentSessionUuid(newSessionUuid);
+                }
+
+                aiMessageId = sessionStore.createAiReplyMessage(targetSessionUuid, meta);
+                sessionStore.fillTempMessage(targetSessionUuid, meta);
+              },
+              (text) => {
+                if (!aiMessageId) return;
+                sessionStore.updateAiReplyMessage(finalSessionUuid, aiMessageId, text);
+
+                // 🔥 流式回复时也自动滚动（可选，体验更好）
+                // nextTick(() => {
+                //   aiChatContentRef.value?.scrollToBottom()
+                // })
+              },
+              () => {
+                console.log('🔚 流式传输完成');
+                currentStreamCancel = null;
+                isAiReplying.value = false;
+              },
+              (err) => {
+                console.error('解析错误：', err);
+              }
+          );
+        },
+        // 🔥 修复后的请求错误回调（唯一改动点）
+        (err) => {
+          if (err) console.error('请求失败：', err);
+        }
+    );
+
+  } catch (err) {
+    console.error('发送消息初始化失败：', err);
+    isAiReplying.value = false;
+    const errorMsg = {
+      userId: 'ai',
+      content: '抱歉，发送消息失败，请稍后再试～',
+      type: 'ASSISTANT',
+      createTime: new Date().toLocaleString()
+    };
+    sessionStore.pushMessageToSession(sessionUuid, errorMsg);
+  }
+};
+
 // 可选：父组件手动调用子组件的滚动方法（比如输入框发送消息后）
 // 示例：const forceScroll = () => aiChatContentRef.value?.scrollToBottom()
 </script>
-
 
 <style scoped>
 /* 保留原有的非输入框样式 */

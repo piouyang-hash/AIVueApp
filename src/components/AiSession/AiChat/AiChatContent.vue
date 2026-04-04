@@ -46,7 +46,7 @@
             v-else-if="item.role === 'ASSISTANT'"
             v-for="(splitText, splitIndex) in (
             configStore.isSplitMessageEnabled
-            ? (item.splitContent || [item.content])
+            ? (item.splitContent?.map(item => item.content) || [item.content])
             : [item.content]
             )"
             :key="'ai-' + index + '-' + splitIndex"
@@ -170,8 +170,9 @@ const sessionStore = useSessionStore()
 const { aiRoleList } = storeToRefs(sessionStore)
 
 // ========== 4. 计算属性：当前会话消息 ==========
+// 🔥 直接复用 Store 里封装好的 getCurrentMergedMessages
 const currentMessages = computed(() => {
-  return sessionStore.sessionMessages[sessionStore.currentSessionUuid] || []
+  return sessionStore.getCurrentMergedMessages
 })
 
 // ========== 5. 同步props会话UUID到Pinia仓库 ==========

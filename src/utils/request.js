@@ -217,3 +217,4 @@ export const accountRequest = createRequest(SERVICE_URLS.ACCOUNT_SERVICE); // �
 export const connectRequest = createRequest(SERVICE_URLS.CONNECT_SERVICE); // 仍用默认5000ms
 // AI聊天请求：单独配置30000ms（30秒）超时，根据需要调整
 export const aiChatRequest = createRequest(SERVICE_URLS.AI_CHAT_SERVICE, 30000);
+

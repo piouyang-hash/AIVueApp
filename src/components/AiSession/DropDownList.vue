@@ -48,7 +48,7 @@
             @touchcancel="handleLongPressCancel"
         >
           <span class="session-icon">💬</span>
-          <span class="session-text">{{ session.lastMessageContent }}</span>
+          <span class="session-text">{{ formatMarkdownText(session.lastMessageContent) }}</span>
         </div>
       </div>
     </div>
@@ -248,6 +248,23 @@ const handleDeleteSession = (session) => {
   )
 }
 
+// ====================== AI消息文本格式化（去除Markdown） ======================
+const formatMarkdownText = (text) => {
+  // 1. 空值兜底
+  if (!text) return '';
+
+  // 2. 🔥 只删除【开头】的 1~6 个 # （标题符号，中间#完全保留）
+  let formatted = text.replace(/^#{1,6}\s*/, '');
+
+  // 3. 🔥 删除所有 ** 加粗符号（保留文字）
+  formatted = formatted.replace(/\*\*/g, '');
+
+  // 4. 🔥 过滤纯 --- 分隔线
+  formatted = formatted.trim() === '---' ? '' : formatted;
+
+  // 5. 最后清理首尾空白
+  return formatted.trim();
+};
 </script>
 
 <style scoped>
@@ -265,14 +282,19 @@ const handleDeleteSession = (session) => {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  /* 🔥 核心修复：永远预留滚动条的位置，不挤压文字！ */
+  scrollbar-gutter: stable;
 }
 
-/* 过渡动画 */
+/* 修复后的过渡动画 - 完美平滑，无拉伸突兀 */
 .expand-enter-active,
 .expand-leave-active {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  max-height: 400px;
+  /* 关键：和下拉面板最大高度完全一致，不写死固定值 */
+  max-height: min(300px, 50vh);
   opacity: 1;
+  /* 关键：展开时允许滚动，收起时隐藏内容 */
+  overflow: hidden;
 }
 .expand-enter-from,
 .expand-leave-to {
@@ -281,6 +303,8 @@ const handleDeleteSession = (session) => {
   padding-top: 0;
   padding-bottom: 0;
   margin-top: 0;
+  /* 收起时彻底隐藏溢出 */
+  overflow: hidden;
 }
 
 .dropdown-empty {

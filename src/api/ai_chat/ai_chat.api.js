@@ -18,6 +18,41 @@ export async function userChatWithMemoryApi(params) {
 }
 
 /**
+ * 测试：登录态触发AI流式异步任务
+ * 对应后端：POST /ai/test/async-stream
+ * 需携带JWT Token，入参包含用户消息、会话UUID、角色ID
+ * @param {Object} params - 对话请求参数
+ * @param {string} params.message - 用户输入的对话消息
+ * @param {string} params.sessionUuid - 会话UUID（前端传入）
+ * @param {number} [params.roleId] - 角色ID（非必填，默认1）
+ * @returns {Promise<string>} - 响应：返回 会话ID:任务ID 字符串
+ */
+export async function testAsyncStreamApi(params) {
+    return withAuth(aiChatRequest, {
+        url: '/ai/test/async-stream',
+        method: 'POST',
+        data: params
+    })
+}
+
+/**
+ * 测试：登录态停止AI流式对话任务
+ * 对应后端：POST /ai/chat/stop
+ * 需携带JWT Token，入参包含会话UUID、任务ID
+ * @param {Object} params - 停止请求参数
+ * @param {string} params.sessionUuid - 会话UUID（前端传入）
+ * @param {string} params.taskId - 流式任务ID（前端传入）
+ * @returns {Promise<string>} - 响应：返回停止成功提示
+ */
+export async function stopAiStreamChatApi(params) {
+    return withAuth(aiChatRequest, {
+        url: '/ai/chat/stop',
+        method: 'POST',
+        data: params
+    })
+}
+
+/**
  * 登录态滑动窗口流式AI对话接口（适配fetch版withStream，移除axios依赖）
  * 对应后端：POST /ai/chat/sliding-window
  * 需携带JWT Token，入参包含用户消息和会话UUID，流式接收AI回复

@@ -26,7 +26,7 @@
     <!-- 操作按钮组 -->
     <div class="action-buttons">
       <button class="btn gift-btn">送礼物</button>
-      <button class="btn message-btn">发消息</button>
+      <button class="btn message-btn" @click="handleCreateNewChat">发消息</button>
     </div>
   </div>
 </template>
@@ -35,15 +35,44 @@
 import { storeToRefs } from 'pinia'
 import { useContactStore } from '@/stores/ContactStore.js'
 import { SERVICE_URLS } from '@/api/constants/serviceUrls.js'
+import { useSessionStore } from '@/stores/sessionStore.js' // 补全会话仓库
 // 导入路由
 import { useRouter } from 'vue-router'
+import generateUUID from "@/utils/uuid.js";
 
+const sessionStore = useSessionStore() // 初始化会话store
 const router = useRouter()
 const contactStore = useContactStore()
 const { currentContact } = storeToRefs(contactStore)
 // 返回上一页
 const goBack = () => {
   router.back()
+}
+
+const handleCreateNewChat = async () => {
+  try {
+    // 当前选中的联系人（就是页面展示的这个）
+    const item = currentContact.value
+    console.log("联系人发消息：", item)
+
+    // 2. 设置当前AI角色ID
+    sessionStore.setCurrentRoleId(item.roleId)
+    console.log('已设置当前角色ID：', item.roleId)
+
+    // 3. 生成新会话UUID
+    const sessionUuid = generateUUID()
+    console.log('生成的新会话UUID：', sessionUuid)
+
+    // 4. 设置当前会话
+    sessionStore.setCurrentSessionUuid(sessionUuid)
+
+    // 5. 跳转AI聊天页
+    await router.push({ name: 'AiChat' })
+
+    console.log('发消息 → 跳转对话成功！')
+  } catch (error) {
+    console.error('发消息失败：', error)
+  }
 }
 </script>
 

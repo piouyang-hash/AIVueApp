@@ -12,13 +12,13 @@ export const useHeartbeatStore = defineStore('heartbeat', {
         countdownSeconds: 10      // 倒计时秒数
     }),
     getters: {
-        isWsConnected: () => wsClient.connected.value,
+        isWsConnected: () => wsClient.connected,
         formattedCountdown: (state) => `${state.countdownSeconds.toString().padStart(2, '0')}s`,
         beatIntervalMs: (state) => Math.max(1000, state.beatInterval * 1000),
         // 新增：是否允许心跳（登录+WS连接成功）
         canHeartbeat: () => {
             const userStore = useUserStore();
-            return userStore.isLogin && wsClient.connected.value;
+            return userStore.isLogin && wsClient.connected;
         }
     },
     actions: {

@@ -1,4 +1,9 @@
-import {userChatWithMemoryApi, publicChatApi, userSlidingWindowStreamChatApi} from "@/api/ai_chat/ai_chat.api.js"; // 接口函数路径
+import {
+    userChatWithMemoryApi,
+    publicChatApi,
+    userSlidingWindowStreamChatApi,
+    testAsyncStreamApi, stopAiStreamChatApi
+} from "@/api/ai_chat/ai_chat.api.js"; // 接口函数路径
 import { handleApiResponse } from "@/api/constants/ApiFunctionCommon.js";
 import {useSessionStore} from "@/stores/sessionStore.js";
 import {storeToRefs} from "pinia";
@@ -18,6 +23,44 @@ export async function userChatWithMemory(msg, sessionId) {
     };
     // 把组装好的实体对象作为参数传给apiFunc，适配handleApiResponse的...args
     return handleApiResponse(userChatWithMemoryApi, requestParams);
+}
+
+/**
+ * 登录态停止AI流式对话（关联用户会话）
+ * 自动组装实体参数，适配stopAiStreamChatApi的入参要求
+ * @param {string} sessionUuid - 会话UUID（对应实体的sessionUuid字段）
+ * @param {string} taskId - 流式任务ID（对应实体的taskId字段）
+ * @returns {string} - 成功返回停止成功提示，失败抛出错误
+ */
+export async function stopAiStreamChat(sessionUuid, taskId) {
+    // 核心：手动组装成接口要求的实体对象
+    const requestParams = {
+        sessionUuid: sessionUuid,
+        taskId: taskId
+    };
+    // 调用API并统一处理响应
+    return handleApiResponse(stopAiStreamChatApi, requestParams);
+}
+
+/**
+ * 测试：登录态AI流式对话（简化调用）
+ * 自动组装实体参数，适配testAsyncStreamApi的入参要求
+ * @param {string} msg - 用户输入的对话消息
+ * @param {string} sessionUuid - 会话UUID（前端传入）
+ * @returns {Promise<string>} - 成功返回 会话ID:任务ID，失败抛出错误
+ */
+export async function testAsyncStream(msg, sessionUuid) {
+    // ========== 🔥 新增：从 Pinia 仓库获取当前角色 ID（无侵入，不修改函数参数） ==========
+    const sessionStore = useSessionStore()
+    const { currentRoleId } = storeToRefs(sessionStore)
+    // 组装接口要求的实体对象
+    const requestParams = {
+        message: msg,
+        sessionUuid: sessionUuid,
+        roleId: currentRoleId.value
+    };
+    // 统一处理响应
+    return handleApiResponse(testAsyncStreamApi, requestParams);
 }
 
 /**

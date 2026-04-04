@@ -26,7 +26,7 @@
       </div>
       <div class="chat-info">
         <h3 class="chat-title">{{ item.chatTitle }}</h3>
-        <p class="chat-desc">{{ item.lastMessageContent }}</p>
+        <p class="chat-desc">{{ formatMarkdownText(item.lastMessageContent)  }}</p>
       </div>
       <div class="chat-time">{{ formatTime(item.createTime) }}</div>
     </div>
@@ -107,6 +107,24 @@ const sortedChatList = computed(() => {
   // 🔥 直接调用工具类，一键排序
   return sortChatList(sessionStore.chatList)
 })
+
+// ====================== AI消息文本格式化（去除Markdown） ======================
+const formatMarkdownText = (text) => {
+  // 1. 空值兜底
+  if (!text) return '';
+
+  // 2. 🔥 只删除【开头】的 1~6 个 # （标题符号，中间#完全保留）
+  let formatted = text.replace(/^#{1,6}\s*/, '');
+
+  // 3. 🔥 删除所有 ** 加粗符号（保留文字）
+  formatted = formatted.replace(/\*\*/g, '');
+
+  // 4. 🔥 过滤纯 --- 分隔线
+  formatted = formatted.trim() === '---' ? '' : formatted;
+
+  // 5. 最后清理首尾空白
+  return formatted.trim();
+};
 </script>
 
 <style scoped>
