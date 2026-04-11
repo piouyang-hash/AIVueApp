@@ -26,7 +26,7 @@
       </div>
       <div class="chat-info">
         <h3 class="chat-title">{{ item.chatTitle }}</h3>
-        <p class="chat-desc">{{ formatMarkdownText(item.lastMessageContent)  }}</p>
+        <p class="chat-desc">{{ formatMarkdownText(sessionStore.sessionLastMessage[item.sessionUuid] || '暂无消息')  }}</p>
       </div>
       <div class="chat-time">{{ formatTime(item.createTime) }}</div>
     </div>

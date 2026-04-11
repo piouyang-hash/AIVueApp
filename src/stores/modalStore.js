@@ -7,7 +7,7 @@ export const useModalStore = defineStore('modalStore', {
 
         pageModals: {
             ChatListPage: { // 对应 AI 会话列表/详情页
-                // 👇 已移除：attachSelectModal 迁移到 componentModals 下
+
             },
             CreatePage: { // 创作中心页面
                 // 可扩展创作页的模态框，如：发布确认框

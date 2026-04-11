@@ -6,6 +6,7 @@ import {
     listChatMessagesApi, untopChatSessionApi, topChatSessionApi,
 } from "@/api/ai_chat/ai_chat.session.api.js";
 import {handleApiResponse} from "@/api/constants/ApiFunctionCommon.js";
+import {updateChatSessionUnreadApi} from "../api/ai_chat/ai_chat.session.api.js";
 
 // ===================== 封装后的工具函数（组件可直接调用） =====================
 /**
@@ -42,6 +43,22 @@ export async function untopChatSession(sessionUuid) {
     return handleApiResponse(untopChatSessionApi, sessionUuid);
 }
 
+/**
+ * 更新指定AI聊天会话未读消息数
+ * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）
+ * @param {number|null} normalUnreadCount - 非切分模式未读消息数
+ * @param {number|null} splitUnreadCount - 切分模式未读消息数
+ * @returns {null} - 成功返回null，失败抛出错误
+ */
+export async function updateChatSessionUnread(sessionUuid, normalUnreadCount, splitUnreadCount) {
+    // 构建后端所需的DTO对象
+    const dto = {
+        sessionUuid,
+        normalUnreadCount,
+        splitUnreadCount
+    };
+    return handleApiResponse(updateChatSessionUnreadApi, dto);
+}
 
 /**
  * 删除指定AI聊天会话（移入回收站）

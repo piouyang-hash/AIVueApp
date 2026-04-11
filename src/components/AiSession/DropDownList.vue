@@ -48,7 +48,13 @@
             @touchcancel="handleLongPressCancel"
         >
           <span class="session-icon">💬</span>
-          <span class="session-text">{{ formatMarkdownText(session.lastMessageContent) }}</span>
+          <span class="session-text">{{ formatMarkdownText(sessionStore.sessionLastMessage[session.sessionUuid]) }}</span>
+          <div
+              class="session-badge"
+              v-show="sessionStore.getSessionUnread(session.sessionUuid) > 0"
+          >
+            {{ sessionStore.getSessionUnread(session.sessionUuid) }}
+          </div>
         </div>
       </div>
     </div>
@@ -421,6 +427,29 @@ const formatMarkdownText = (text) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 🔥 会话未读徽章：和之前图标徽章风格统一 */
+.session-badge {
+  position: absolute;
+  right: 1px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 0.6rem;
+  background-color: var(--primary-color);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 2.2rem;
 }
 
 /* 滚动条 */

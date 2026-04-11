@@ -51,6 +51,23 @@ export async function untopChatSessionApi(sessionUuid) {
 }
 
 /**
+ * 更新指定AI聊天会话未读消息数
+ * 对应后端：POST /ai/chat/session/update-unread
+ * @param {Object} dto - 更新未读数请求DTO
+ * @param {string} dto.sessionUuid - 会话UUID（标准UUIDv4格式）
+ * @param {number|null} dto.normalUnreadCount - 非切分模式未读消息数（null不更新）
+ * @param {number|null} dto.splitUnreadCount - 切分模式未读消息数（null不更新）
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: null, msg: string}
+ */
+export async function updateChatSessionUnreadApi(dto) {
+    return withAuth(aiChatRequest, {
+        url: `/ai/chat/session/update-unread`,
+        method: 'POST',
+        data: dto
+    })
+}
+
+/**
  * 删除指定AI聊天会话（移入回收站）
  * 对应后端：POST /ai/chat/session/{sessionUuid}/delete
  * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）

@@ -127,21 +127,21 @@ let currentStreamCancel = null
 const handleAIInputSendMessage = async ({ content, sessionUuid }) => {
   try {
     sessionStore.setPlaceholderSession(sessionUuid)
-    // 插入用户消息
-    sessionStore.pushMessageToSession(sessionUuid, {
-      content, role: 'USER', createTime: new Date().toLocaleString()
-    })
 
     await nextTick(() => aiChatContentRef.value?.scrollToBottom())
 
-    // 1. 获取任务ID
+    // 1. 获取任务ID（后端返回：sessionUuid:taskId:userMessageId）
     const uniqueKey = await testAsyncStream(content, sessionUuid)
-    const [wsSessionUuid, taskId] = uniqueKey.split(':')
+    // 🔥 拆分出三个参数：会话ID、任务ID、用户消息ID
+    const [wsSessionUuid, taskId, userMessageId] = uniqueKey.split(':')
+
+    // 🔥 核心：将 messageId 传给创建等待消息的方法
+    sessionStore.createUserWaitingMessage(sessionUuid, content, taskId, userMessageId)
 
     // 2. 保存任务
     sessionStore.addSessionTask(sessionUuid, taskId)
 
-    // 3. 🔥 全局建立连接（一行代码）
+    // 3. 全局建立连接
     aiReceiver.connect(wsSessionUuid, taskId)
 
   } catch (err) {

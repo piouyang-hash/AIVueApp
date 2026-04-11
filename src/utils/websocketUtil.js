@@ -41,22 +41,22 @@ class WebSocketClient {
 
     setWsUrl(url) {
         if (typeof url !== 'string' || !url) {
-            console.error('WS地址必须是有效字符串');
+            // console.error('WS地址必须是有效字符串');
             return;
         }
         this.wsUrl = url;
-        console.log(`WS工具类：已设置连接地址 → ${url}`);
+        // console.log(`WS工具类：已设置连接地址 → ${url}`);
     }
 
     connect() {
         // 🔥 修复：直接赋值，无 .value
         if (this._connecting || this._connected) {
-            console.warn('WS工具类：连接已在进行中/已连接，跳过重复连接');
+            // console.warn('WS工具类：连接已在进行中/已连接，跳过重复连接');
             return;
         }
 
         if (!this.wsUrl) {
-            console.error('WS工具类：未设置连接地址，无法初始化连接');
+            // console.error('WS工具类：未设置连接地址，无法初始化连接');
             return;
         }
 
@@ -68,7 +68,7 @@ class WebSocketClient {
             this.ws = new WebSocket(this.wsUrl);
 
             this.ws.onopen = (event) => {
-                console.log(`WS工具类：连接成功 → ${this.wsUrl}`);
+                // console.log(`WS工具类：连接成功 → ${this.wsUrl}`);
                 self._connected = true;
                 self._connecting = false;
                 self._reconnectCount = 0;
@@ -77,25 +77,25 @@ class WebSocketClient {
 
             this.ws.onmessage = (event) => {
                 const rawData = event.data;
-                console.log(`WS工具类：收到原始消息 → ${rawData}`);
+                // console.log(`WS工具类：收到原始消息 → ${rawData}`);
                 self._callbacks.message?.(rawData, event);
             };
 
             this.ws.onerror = (error) => {
-                console.error('WS工具类：连接错误', error);
+                // console.error('WS工具类：连接错误', error);
                 self._error = error;
                 self._callbacks.error?.(error);
             };
 
             this.ws.onclose = (event) => {
-                console.log(`WS工具类：连接关闭 → 状态码${event.code}，原因${event.reason}`);
+                // console.log(`WS工具类：连接关闭 → 状态码${event.code}，原因${event.reason}`);
                 self._connected = false;
                 self._connecting = false;
                 self._callbacks.close?.(event);
                 self._handleReconnect();
             };
         } catch (error) {
-            console.error('WS工具类：初始化连接失败', error);
+            // console.error('WS工具类：初始化连接失败', error);
             self._error = error;
             self._connecting = false;
             self._handleReconnect();
@@ -104,16 +104,16 @@ class WebSocketClient {
 
     send(data) {
         if (!this._connected || !this.ws) {
-            console.error('WS工具类：未连接，无法发送消息');
+            // console.error('WS工具类：未连接，无法发送消息');
             return false;
         }
 
         try {
             this.ws.send(data);
-            console.log(`WS工具类：发送原始消息 → ${data}`);
+            // console.log(`WS工具类：发送原始消息 → ${data}`);
             return true;
         } catch (error) {
-            console.error('WS工具类：发送消息失败', error);
+            // console.error('WS工具类：发送消息失败', error);
             return false;
         }
     }
@@ -134,7 +134,7 @@ class WebSocketClient {
         this._connected = false;
         this._connecting = false;
         this._reconnectCount = 0;
-        console.log(`WS工具类：手动关闭连接 → 状态码${code}，原因${reason}`);
+        // console.log(`WS工具类：手动关闭连接 → 状态码${code}，原因${reason}`);
     }
 
     on(callbacks = {}) {
@@ -147,19 +147,19 @@ class WebSocketClient {
 
     _handleReconnect() {
         if (this._manualClosed) {
-            console.log("WS工具类：主动关闭连接，禁止重连");
+            // console.log("WS工具类：主动关闭连接，禁止重连");
             return;
         }
 
         if (this._connected || (this.config.maxReconnectTimes !== -1 && this._reconnectCount >= this.config.maxReconnectTimes)) {
             if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-            console.log(`WS工具类：停止重连 → 已连接/达到最大重连次数(${this.config.maxReconnectTimes})`);
+            // console.log(`WS工具类：停止重连 → 已连接/达到最大重连次数(${this.config.maxReconnectTimes})`);
             return;
         }
 
         this._reconnectCount += 1;
         this.reconnectTimer = setTimeout(() => {
-            console.log(`WS工具类：第${this._reconnectCount}次重连 → ${this.wsUrl}`);
+            // console.log(`WS工具类：第${this._reconnectCount}次重连 → ${this.wsUrl}`);
             this.connect();
         }, this.config.reconnectInterval);
     }
