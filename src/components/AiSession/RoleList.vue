@@ -39,7 +39,7 @@
           <div class="role-badge" v-if="hasActiveSession(item.roleId)"></div>
           <div class="avatar">
             <img
-                :src="SERVICE_URLS.AI_CHAT_SERVICE + item.avatarRelativePath"
+                :src="SERVICE_URLS.AI_CHAT_SERVICE + item.avatarPath"
                 alt="角色头像"
                 class="avatar-img"
             >

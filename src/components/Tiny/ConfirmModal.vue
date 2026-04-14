@@ -29,7 +29,7 @@
                 <input
                     type="text"
                     class="modern-input"
-                    placeholder="例如：补充说明..."
+                    :placeholder="modalStore.componentModals.ConfirmModal.inputPlaceholder"
                     autocomplete="off"
                     v-model="modalStore.componentModals.ConfirmModal.inputValue"
                 />
@@ -63,17 +63,24 @@ const modalStore = useModalStore()
 const confirmButtonRef = ref(null)
 const cancelButtonRef = ref(null)
 
+// 取消按钮事件（保持原有逻辑，无改动）
 const handleCancel = () => {
+  // 如果有传入取消回调，就执行
   if (modalStore.componentModals.ConfirmModal.cancelFn) {
     modalStore.componentModals.ConfirmModal.cancelFn();
   }
+  // 关闭弹窗
   modalStore.hideConfirmModal();
 };
 
+// 确定按钮事件（🔥 核心修改：把输入框内容传给回调函数）
 const handleConfirm = () => {
-  if (modalStore.componentModals.ConfirmModal.confirmFn) {
-    modalStore.componentModals.ConfirmModal.confirmFn();
+  const confirmModal = modalStore.componentModals.ConfirmModal;
+  // 如果有传入确认回调，就执行，并把【输入框的值】作为参数传过去
+  if (confirmModal.confirmFn) {
+    confirmModal.confirmFn(confirmModal.inputValue);
   }
+  // 关闭弹窗
   modalStore.hideConfirmModal();
 };
 
@@ -208,6 +215,8 @@ onUnmounted(() => {
   color: var(--text-secondary, var(--gray-600, #495057));
   margin: 0;
   word-break: break-word;
+  /* 🔥 新增：左右内边距（隔开弹窗边缘）+ 文字居中 */
+  padding: 0 50px;
 }
 
 /* 改进后的输入框样式 */

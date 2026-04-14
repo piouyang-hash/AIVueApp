@@ -10,7 +10,7 @@
       <div class="profile-avatar">
         <img
             class="avatar-img"
-            :src="`${SERVICE_URLS.AI_CHAT_SERVICE}${currentContact.avatarRelativePath}`"
+            :src="`${SERVICE_URLS.AI_CHAT_SERVICE}${currentContact.avatarPath}`"
             alt="角色头像"
         >
       </div>

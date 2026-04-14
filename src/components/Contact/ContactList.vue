@@ -13,7 +13,7 @@
       >
       <img
           class="avatar"
-          :src="SERVICE_URLS.AI_CHAT_SERVICE + contact.avatarRelativePath"
+          :src="SERVICE_URLS.AI_CHAT_SERVICE + contact.avatarPath"
           alt="角色头像"
       >
       <!-- 🔥 名称：name → roleDesc -->

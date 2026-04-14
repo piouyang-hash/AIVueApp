@@ -7,7 +7,29 @@ export const useModalStore = defineStore('modalStore', {
 
         pageModals: {
             ChatListPage: { // 对应 AI 会话列表/详情页
-
+                // 👇 新增：消息长按菜单（和contextMenu结构一模一样）
+                // 你的 modalStore.js 中 messageOptionMenu 配置
+                messageOptionMenu: {
+                    visible: false,
+                    element: null,
+                    originalStyles: {
+                        zIndex: '',
+                        position: ''
+                    },
+                    position: {
+                        topLeft: { left: 0, top: 0 },
+                        bottomLeft: { left: 0, top: 0 },
+                        right: 0, // 消息元素右侧坐标（保留）
+                    },
+                    currentItem: null,
+                    role: 'ASSISTANT', // ✅ 替换成你项目的角色：默认助手（左侧消息）
+                },
+                // 1. 修改 overlay 配置，新增 dom 存储原生DOM
+                overlay: {
+                    visible: false,
+                    item: null,
+                    dom: null, // 🔥 新增：存储长按获取的原生DOM
+                },
             },
             CreatePage: { // 创作中心页面
                 // 可扩展创作页的模态框，如：发布确认框
@@ -64,11 +86,12 @@ export const useModalStore = defineStore('modalStore', {
                 visible: false,
                 overlayVisible: true,
                 title: '请确认',
+                message: '', // 🔥 缺失：必须加！模板用到了
                 confirmFn: () => {},
                 cancelFn: () => {},
-                // 👇 新增：控制输入框显示 + 存储输入内容（响应式）
-                showInput: false,    // 是否显示输入框
-                inputValue: ''       // 输入框内容（双向绑定）
+                showInput: false,
+                inputValue: '',
+                inputPlaceholder: '请输入内容' // 🔥 优化：动态占位符
             },
             // 👇 核心修改：重构contextMenu的position结构，支持左上+左下两个坐标
             // modalStore 中的 contextMenu 结构修改
@@ -86,21 +109,6 @@ export const useModalStore = defineStore('modalStore', {
                 },
                 currentItem: null // 如有其他字段也保留
             },
-            // 👇 新增：消息长按菜单（完全同结构）
-            messageOptionMenu: {
-                visible: false,
-                element: null,
-                originalStyles: {
-                    zIndex: '',
-                    position: ''
-                },
-                // 👇 重命名为：上中 / 下中
-                position: {
-                    topMiddle: { left: 0, top: 0 },     // 元素顶部中心点
-                    bottomMiddle: { left: 0, top: 0 }   // 元素底部中心点
-                },
-                currentItem: null
-            }
         }
     }),
 
@@ -148,38 +156,62 @@ export const useModalStore = defineStore('modalStore', {
             console.log('弹出菜单已隐藏，样式自动恢复');
         },
 
-        // ========== 消息长按菜单 专属方法（对外调用） ==========
-        // 显示消息菜单：计算 上中 / 下中 坐标
+        // ============== 新增：MessageOptionMenu 菜单方法 ==============
+        // 显示消息长按菜单
         showMessageOptionMenu(element, item) {
             if (!element || !item) return;
 
-            this.componentModals.messageOptionMenu.element = element;
-            this.componentModals.messageOptionMenu.currentItem = item;
+            this.pageModals.ChatListPage.messageOptionMenu.element = element;
+            this.pageModals.ChatListPage.messageOptionMenu.currentItem = item;
+            this.pageModals.ChatListPage.messageOptionMenu.role = item.role; // ✅ 存储你项目的角色（USER/ASSISTANT）
 
             const rect = element.getBoundingClientRect();
-            // 👇 计算【水平居中】坐标（关键修改）
-            const centerX = rect.left + rect.width / 2;
-
-            // 赋值：上中、下中
-            this.componentModals.messageOptionMenu.position.topMiddle = {
-                left: centerX,
+            this.pageModals.ChatListPage.messageOptionMenu.position.topLeft = {
+                left: rect.left,
                 top: rect.top
             };
-            this.componentModals.messageOptionMenu.position.bottomMiddle = {
-                left: centerX,
+            this.pageModals.ChatListPage.messageOptionMenu.position.bottomLeft = {
+                left: rect.left,
                 top: rect.top + rect.height
             };
+            this.pageModals.ChatListPage.messageOptionMenu.position.right = rect.right;
 
-            this.componentModals.messageOptionMenu.visible = true;
+            this.pageModals.ChatListPage.messageOptionMenu.visible = true;
         },
 
-        // 隐藏消息菜单（只重置状态，不恢复样式）
+        // 隐藏消息长按菜单
         hideMessageOptionMenu() {
-            // 只重置菜单状态，CSS类会自动消失
-            this.componentModals.messageOptionMenu.visible = false;
-            this.componentModals.messageOptionMenu.element = null;
-            this.componentModals.messageOptionMenu.currentItem = null;
-            console.log('消息长按菜单已隐藏，样式自动恢复');
+            // 重置状态
+            this.pageModals.ChatListPage.messageOptionMenu.visible = false;
+            this.pageModals.ChatListPage.messageOptionMenu.element = null;
+            this.pageModals.ChatListPage.messageOptionMenu.currentItem = null;
+            console.log('消息长按菜单已隐藏');
+        },
+
+        /**
+         * 显示全屏磨砂 Overlay
+         * @param {Object} item - 消息数据
+         * @param {HTMLElement} dom - 长按的消息原生DOM（新增参数）
+         */
+        showOverlay(dom, item) {
+            const overlay = this.pageModals.ChatListPage.overlay;
+            overlay.dom = dom; // 🔥 把你传的 dom 存起来
+            overlay.item = item;
+            overlay.visible = true;
+        },
+
+        /**
+         * 隐藏全屏磨砂 Overlay（重置状态）
+         */
+        hideOverlay() {
+            const overlay = this.pageModals.ChatListPage.overlay;
+            overlay.visible = false;
+            overlay.dom = null;
+            overlay.item = null;
+
+            // 同步关闭显示出的消息选项
+            this.hideMessageOptionMenu()
+            console.log('全屏Overlay已隐藏');
         },
 
         // 显示气泡：你给的方法逻辑，先关旧的再开新的，参数匹配
@@ -206,19 +238,23 @@ export const useModalStore = defineStore('modalStore', {
 
         // ConfirmModal 专用：显示弹窗（可传标题+回调）
         // 新增参数 showInput = false（默认隐藏输入框）
+        // 补全 message 参数
         showConfirmModal(
             title = '请确认',
+            message = '', // 🔥 新增：提示文本
             confirmFn = () => {},
             cancelFn = () => {},
-            showInput = false  // 👈 新增
+            showInput = false,
+            inputPlaceholder = '请输入内容' // 🔥 新增：动态占位符
         ) {
             const modal = this.componentModals.ConfirmModal;
             modal.title = title;
+            modal.message = message; // 🔥 赋值
             modal.confirmFn = confirmFn;
             modal.cancelFn = cancelFn;
             modal.visible = true;
-            // 👇 新增：赋值是否显示输入框 + 清空上次输入内容
             modal.showInput = showInput;
+            modal.inputPlaceholder = inputPlaceholder; // 🔥 赋值
             modal.inputValue = '';
         },
 
@@ -226,12 +262,11 @@ export const useModalStore = defineStore('modalStore', {
         hideConfirmModal() {
             const modal = this.componentModals.ConfirmModal;
             modal.visible = false;
-            // 重置回调
             modal.confirmFn = () => {};
             modal.cancelFn = () => {};
-            // 👇 新增：重置输入框状态（和显示状态）
             modal.showInput = false;
             modal.inputValue = '';
+            modal.message = ''; // 🔥 补充：清空消息
         },
 
         // ========== 通用方法（适配Visible大写规范） ==========

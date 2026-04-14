@@ -192,7 +192,8 @@ const routes = [
                     title: '编辑联系人资料',
                     description: '联系人资料编辑页面',
                     branch: 'ContactPage', // 导航激活保持一致
-                    requiresAuth: true
+                    requiresAuth: true,
+                    showFooterNav: false,
                 }
             },
             {

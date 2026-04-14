@@ -189,45 +189,65 @@ const isFormValid = computed(() => {
 // 方法定义（替代原methods，去掉this，直接操作ref的value）
 const validateEmail = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email.value) {
-    emailError.value = '邮箱不能为空';
-    isEmailValid.value = false;
-  } else if (!emailRegex.test(email.value)) {
-    emailError.value = '邮箱格式不正确';
-    isEmailValid.value = false;
+  // 🔥 核心：只有输入了内容，才校验格式
+  if (email.value) {
+    if (!emailRegex.test(email.value)) {
+      // 格式错误才报错
+      emailError.value = '邮箱格式不正确';
+      isEmailValid.value = false;
+    } else {
+      // 格式正确，清空错误
+      emailError.value = '';
+      isEmailValid.value = true;
+    }
   } else {
+    // 🔥 空值：不报错、清空错误信息
     emailError.value = '';
-    isEmailValid.value = true;
+    isEmailValid.value = false;
   }
 }
 
 const validatePassword = () => {
-  if (!password.value) {
-    passwordError.value = '密码不能为空';
-  } else if (password.value.length < 6 || password.value.length > 20) {
-    passwordError.value = '密码长度为6-20位';
+  // 🔥 仅当输入了内容时，才进行校验
+  if (password.value) {
+    if (password.value.length < 6 || password.value.length > 20) {
+      // 长度不合法：报错
+      passwordError.value = '密码长度为6-20位';
+    } else {
+      // 长度合法：清空错误，并校验确认密码
+      passwordError.value = '';
+      validateConfirmPwd();
+    }
   } else {
+    // 🔥 空值：清空错误，不提示
     passwordError.value = '';
-    validateConfirmPwd(); // 直接调用方法，无需this
   }
 }
 
 const validateConfirmPwd = () => {
-  if (!confirmPwd.value) {
-    confirmPwdError.value = '请确认密码';
-  } else if (confirmPwd.value !== password.value) {
-    confirmPwdError.value = '两次输入的密码不一致';
+  // 有输入内容才校验
+  if (confirmPwd.value) {
+    if (confirmPwd.value !== password.value) {
+      confirmPwdError.value = '两次输入的密码不一致';
+    } else {
+      confirmPwdError.value = '';
+    }
   } else {
+    // 空值：清空错误，不提示
     confirmPwdError.value = '';
   }
 }
 
 const validateVerifyCode = () => {
-  if (!verifyCode.value) {
-    verifyCodeError.value = '验证码不能为空';
-  } else if (!/^\d{6}$/.test(verifyCode.value)) {
-    verifyCodeError.value = '验证码为6位数字';
+  // 有输入内容才校验
+  if (verifyCode.value) {
+    if (!/^\d{6}$/.test(verifyCode.value)) {
+      verifyCodeError.value = '验证码为6位数字';
+    } else {
+      verifyCodeError.value = '';
+    }
   } else {
+    // 空值：清空错误，不提示
     verifyCodeError.value = '';
   }
 }

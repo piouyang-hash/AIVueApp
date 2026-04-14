@@ -199,10 +199,11 @@ const handleMenuClick = async (label) => {
 
     // ====================== 【从对话列表删除】逻辑 ======================
     else if (label === '从对话列表删除') {
-      // 打开删除确认弹窗
+      // 打开删除确认弹窗（带恢复提示）
       modalStore.showConfirmModal(
-          "确认删除该会话吗？", // 标题
-          async () => { // ✅ 确认删除（异步执行接口）
+          "确认删除？",  // 标题
+          "删除后，可以在回收站恢复",  // 🔥 新增提示文字
+          async () => { // 确认删除（异步执行接口）
             console.log("执行删除会话操作");
             // 1. 调用后端删除接口（传入UUID）
             await deleteChatSession(sessionUuid);
@@ -211,7 +212,7 @@ const handleMenuClick = async (label) => {
             console.log("会话删除成功");
             sessionStore.deleteSessionByUuid(sessionUuid);
           },
-          () => { // ❌ 取消删除
+          () => { // 取消删除
             console.log("用户取消删除会话");
           }
       );

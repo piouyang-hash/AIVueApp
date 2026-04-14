@@ -11,3 +11,15 @@ export async function getMyAiRoleListApi() {
         method: 'GET'
     })
 }
+
+/**
+ * 新增AI角色（底层接口）
+ * @param {FormData} formData - 表单数据（JSON对象+头像文件）
+ */
+export async function createAiRoleApi(formData) {
+    return withAuth(aiChatRequest, {
+        url: '/ai/role/add',
+        method: 'POST',
+        data: formData
+    })
+}

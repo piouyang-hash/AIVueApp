@@ -36,7 +36,6 @@ const router = useRouter()
 
 // 左侧加号：跳转新建智能体页面
 const handleAddContact = () => {
-  console.log('【加号】跳转至新建智能体页面');
   router.push({
     name: 'ContactEditProfilePage'
   });
