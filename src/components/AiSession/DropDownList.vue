@@ -227,10 +227,11 @@ const handleTopSession = async (session) => {
 const handleDeleteSession = (session) => {
   const sessionUuid = session.sessionUuid
 
-  // 打开项目确认弹窗（完全模仿你的示例代码）
+  // 打开项目确认弹窗（参数顺序对齐版）
   modalStore.showConfirmModal(
-      "确认删除该会话吗？",
-      async () => { // 确认删除
+      "确认删除该会话吗？",  // 1. title 标题 ✔️
+      "",                  // 2. message 提示文本（填空即可，也可以写提示语） ✔️
+      async () => {        // 3. confirmFn 确认函数 ✔️
         try {
           // 1. 调用后端删除接口
           await deleteChatSession(sessionUuid)
@@ -247,11 +248,12 @@ const handleDeleteSession = (session) => {
           closeSessionSlide()
         }
       },
-      () => { // 取消删除
+      () => {              // 4. cancelFn 取消函数 ✔️
         closeSessionSlide()
         console.log('用户取消删除会话')
       }
   )
+
 }
 
 // ====================== AI消息文本格式化（去除Markdown） ======================

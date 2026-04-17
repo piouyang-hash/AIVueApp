@@ -7,7 +7,7 @@
   >
     <div
         class="overlay-box"
-        :style="{ minHeight: boxTotalHeight + 'px' }"
+        :style="{ minHeight: boxTotalHeight + 'px'}"
     >
       <!-- 绑定 ref，获取子组件实例 -->
       <SplitMessageBubble
@@ -52,32 +52,34 @@ watch(
     () => modalStore.pageModals.ChatListPage.overlay.visible,
     async (newVal) => {
       if (!newVal) return
+
+      // 1. 等待 DOM 初步渲染
       await nextTick()
 
       const item = modalStore.pageModals.ChatListPage.overlay.item
       const bubbleDom = messageRef.value?.bubbleRef
-      const rootDom = messageRef.value?.rootRef
 
-      if (!bubbleDom || !item || !rootDom) return
+      if (!bubbleDom || !item) return
 
-      const rootHeight = rootDom.offsetHeight
+      // 2. 此时 Flex 居中可能还在计算
+      // 我们再次使用 nextTick 或一个小延迟，确保 bubbleDom 的 getBoundingClientRect() 是准确的
+      await nextTick()
+
+      // 3. 执行菜单显示逻辑
       modalStore.showMessageOptionMenu(bubbleDom, item)
 
-      // 监听菜单高度，计算总高度
+      // 4. 监听菜单高度动态调整滚动条（针对长内容）
       const heightWatcher = watch(
           () => menuRef.value?.menuHeight,
           async (menuHeight) => {
-            if (menuHeight <= 0) return
+            if (!menuHeight || menuHeight <= 0) return
 
-            // 计算总高度
-            boxTotalHeight.value = rootHeight + menuHeight
+            // 如果内容超过视口，Flex 居中会失效（变成顶部对齐），此时需要处理滚动
             const viewportHeight = window.innerHeight
+            const currentBoxHeight = messageRef.value?.rootRef.offsetHeight + menuHeight
 
-            // 打印总高度
-            console.log('📦 盒子总高度：', boxTotalHeight.value + 'px')
-
-            // 🔥 核心：总高度超过视口 → 自动滚动到底部
-            if (boxTotalHeight.value > viewportHeight) {
+            if (currentBoxHeight > viewportHeight) {
+              // 如果内容太长，居中会变成 top 模式，此时强制滚动到底部
               await nextTick()
               scrollRef.value.scrollTop = scrollRef.value.scrollHeight
             }
@@ -108,6 +110,11 @@ onUnmounted(() => document.body.style.overflow = '')
   width: 100vw;
   height: 100vh;
   z-index: 9999;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 核心：垂直居中，内容会从中间向上下扩展 */
+
   background: rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(14px) brightness(1.05);
   -webkit-backdrop-filter: blur(14px) brightness(1.05);

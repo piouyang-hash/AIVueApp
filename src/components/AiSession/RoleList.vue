@@ -36,7 +36,15 @@
             :class="{ 'is-animating': !isDragging }"
             :style="{ transform: `translateX(${activeRoleId === item.roleId ? dragX : 0}px)` }"
         >
-          <div class="role-badge" v-if="hasActiveSession(item.roleId)"></div>
+          <div
+              class="role-unread-badge"
+          :class="item.status === 'ACTIVE'
+          ? 'badge-green ' + ((isSplitMessageEnabled ? item.roleTotalSplitUnreadCount : item.roleTotalNormalUnreadCount) ? '' : 'badge-green-empty')
+          : 'badge-gray'"
+          v-if="item.status === 'ACTIVE' || (isSplitMessageEnabled ? item.roleTotalSplitUnreadCount > 0 : item.roleTotalNormalUnreadCount > 0)"
+          >
+          {{ (isSplitMessageEnabled ? item.roleTotalSplitUnreadCount : item.roleTotalNormalUnreadCount) || '' }}
+        </div>
           <div class="avatar">
             <img
                 :src="SERVICE_URLS.AI_CHAT_SERVICE + item.avatarPath"
@@ -67,10 +75,12 @@ import {computed, ref} from "vue";
 import { SERVICE_URLS } from '@/api/constants/serviceUrls.js'
 import generateUUID from "@/utils/uuid.js";
 import DropDownList from "@/components/AiSession/DropDownList.vue";
+import {useModalStore} from "@/stores/modalStore.js";
 
 const router = useRouter()
-const {isAgentEnabled} = useAiSoftwareConfigStore()
+const {isAgentEnabled, isSplitMessageEnabled} = useAiSoftwareConfigStore()
 const sessionStore = useSessionStore()
+const modalStore = useModalStore()
 
 // ======================
 // 🔥 新增：原生侧滑核心变量
@@ -171,6 +181,26 @@ const handleCreateNewChat = async (item) => {
   }
 }
 
+// 角色删除点击事件
+const handleDeleteRole = () => {
+  modalStore.showConfirmModal(
+      "确认删除该角色吗？", // 标题
+      "会删除所有会话", // 你要的提示消息 ✅
+      async () => {
+        // ====================
+        // 🔥 confirmFn 确认函数（后续在这里写真实删除逻辑）
+        // ====================
+        console.log("执行删除角色逻辑")
+        // ElMessage.success('角色删除成功')
+      },
+      () => {
+        // cancelFn 取消函数
+        closeSlide() // 关闭滑动面板 ✅
+        console.log("取消删除角色")
+      }
+  )
+}
+
 // 长按（保留原有）
 const handleLongPressRoleItem = (e, item) => {
  console.log("长按")
@@ -197,17 +227,43 @@ const formatTime = (timeStr) => {
   return `${(target.getMonth() + 1).toString().padStart(2, '0')}-${target.getDate().toString().padStart(2, '0')}`;
 };
 
+// 🔥 Processed role list: Filter sessions + Attach status + ACTIVE roles first
+// 整理后的角色列表：过滤会话 + 挂载状态 + ACTIVE置顶 + 统计角色总未读数
 const filteredRoleList = computed(() => {
   return sessionStore.aiRoleList.filter(role => {
+    // Only keep roles with sessions
     const sessions = sessionStore.roleSessionMap[role.roleId] || []
     return sessions.length > 0
+  }).map(role => {
+    const sessions = sessionStore.roleSessionMap[role.roleId] || []
+    const hasActive = sessions.some(session => session.status === 'ACTIVE')
+
+    // ===================== 新增：统计角色全会话未读总数 =====================
+    let roleTotalNormalUnreadCount = 0
+    let roleTotalSplitUnreadCount = 0
+    // 遍历该角色下的所有会话，累加未读数
+    sessions.forEach(session => {
+      // 累加普通未读（兜底0，防止无字段报错）
+      roleTotalNormalUnreadCount += session.normalUnreadCount || 0
+      // 累加切分未读（兜底0）
+      roleTotalSplitUnreadCount += session.splitUnreadCount || 0
+    })
+
+    // Add status + 未读总数字段 to role
+    return {
+      ...role,
+      status: hasActive ? 'ACTIVE' : 'CLOSED',
+      // 挂载两个新增字段
+      roleTotalNormalUnreadCount: roleTotalNormalUnreadCount,
+      roleTotalSplitUnreadCount: roleTotalSplitUnreadCount
+    }
+  }).sort((a, b) => {
+    // Core sorting: Pin ACTIVE role to the top, others keep original order
+    // 核心排序：ACTIVE置顶，其余保持原样
+    if (a.status === 'ACTIVE') return -1
+    return 0
   })
 })
-
-const hasActiveSession = (roleId) => {
-  const sessionList = sessionStore.roleSessionMap[roleId] || [];
-  return sessionList.some(session => session.status === 'ACTIVE');
-};
 
 const handleClickRole = async (e, item) => {
   // 点击时关闭侧滑
@@ -370,19 +426,36 @@ const handleClickRole = async (e, item) => {
   transform: scale(0.98);
 }
 
-/* 在线徽章 - 使用你的成功绿 */
-.role-badge {
+/* 数字圆球基础样式 */
+.role-unread-badge {
   position: absolute;
-  top: 16px;
+  top: 10px;
   right: 20px;
-  width: 10px;
-  height: 10px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+}
+
+/* 活跃状态：绿色（沿用你原有的成功色） */
+.badge-green {
   background: var(--success-color);
-  box-shadow: 0 0 0 2px rgba(var(--green-line-rgb), 0.3);
-  z-index: 3;
-  pointer-events: none;
-  animation: pulse 2s infinite;
+}
+
+/* 🔥 新增：活跃无消息 → 缩小绿点（可自己改尺寸） */
+.badge-green.badge-green-empty {
+  width: 12px;   /* 缩小后的宽度（可调） */
+  height: 12px;  /* 缩小后的高度（可调） */
+  font-size: 0; /* 隐藏空白占位 */
+}
+
+/* 非活跃状态：灰色 */
+.badge-gray {
+  background: var(--text-tertiary);
 }
 
 @keyframes pulse {
@@ -433,6 +506,7 @@ const handleClickRole = async (e, item) => {
   margin-left: 12px;
   font-weight: 400;
   letter-spacing: 0.2px;
+  margin-top: 25px;
 }
 
 /* ====================== */

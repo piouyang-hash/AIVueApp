@@ -1,5 +1,5 @@
 // src/services/auth.service.js
-import {register, logout, quickLogin, resetPasswordApi} from '@/api/auth/auth.api.js' // 导入原有的quickLogin API请求
+import {register, logout, quickLogin, resetPasswordApi, refreshUserTokenApi} from '@/api/auth/auth.api.js' // 导入原有的quickLogin API请求
 import { useUserStore } from '@/stores/user.js' // 导入Pinia的userStore
 import router from '@/router/index.js'
 import {APP_CONSTANTS} from "@/api/constants/appType.js";
@@ -9,19 +9,28 @@ import {pollUserProfileUntilSuccess} from "@/services/user.action.service.js";
 // 获取userStore实例
 const userStore = useUserStore()
 const useAiConfig = useAiSoftwareConfigStore()
+import { useDelayTaskStore } from '@/stores/useDelayTaskStore' // 引入你的延迟任务Store
+//  ===================== 常量 =====================
+const delayTaskStore = useDelayTaskStore();
+// 内部提前刷新时间（毫秒，唯一配置项）
+const PRE_REFRESH_TIME = 60 * 1000;
+
 /**
  * 用户登录服务（邮箱登录）
  * @param {string} email - 用户邮箱（原username）
  * @param {string} password - 密码
+ * @param {boolean} [rememberMe=false] - 是否记住我，默认false
  * @returns {Promise<Object>} 登录结果（含loginResult）
  */
-export const loginService = async (email, password) => { // 保持两个参数，组件调用不变！
+export const loginService = async (email, password, rememberMe = false) => { // 保持两个参数，组件调用不变！
     try {
+        console.log(rememberMe)
         // 1. 内部组装LoginDTO：自动补充appType，组件完全无感知
         const loginDTO = {
             email,
             password,
-            appType: APP_CONSTANTS.APP_TYPE // 从常量取AI_CHAT，组件不用传！
+            appType: APP_CONSTANTS.APP_TYPE, // 从常量取AI_CHAT，组件不用传！
+            rememberMe
         };
         console.log('内部组装的LoginDTO：', loginDTO);
 
@@ -30,14 +39,19 @@ export const loginService = async (email, password) => { // 保持两个参数�
         const loginResult = response.data.data;
 
         if (loginResult) {
-            const { token, userId, profile } = loginResult;
+            // 【新增】解构 双Token，保留老token兼容
+            const { token, userId, profile, refreshTokenVO } = loginResult;
             console.log('LoginResult:', loginResult);
 
-            // 3. 更新Pinia存储
+            // 3. 更新Pinia存储（原有逻辑不动）
             userStore.login();
             userStore.setToken(token);
             userStore.setUserId(userId);
             userStore.setUserInfo(profile);
+
+            // ===================== 【核心新增】存储双Token到Pinia =====================
+            userStore.setRememberMe(rememberMe);
+            userStore.setRefreshTokenVO(refreshTokenVO);
 
             // 4. 新增：如果profile为null，启动轮询获取用户资料
             if (!profile) {
@@ -56,6 +70,13 @@ export const loginService = async (email, password) => { // 保持两个参数�
                     // 轮询失败不影响登录流程
                 });
             }
+
+            // ===================== 【核心】登录成功 → 启动自动续期任务 =====================
+            // 先清空旧任务，防止重复！！！
+            delayTaskStore.stopTask();
+            // 倒计时执行 refreshUserToken, 提前一分钟
+            delayTaskStore.startDelayTask(userStore.refreshTokenVO.accessTokenExpirationTime - PRE_REFRESH_TIME, refreshUserToken);
+            console.log('✅ 登录成功 → 已启动自动刷新Token任务')
 
             // 5. 新增：获取用户ai软件基础配置
             await useAiConfig.fetchAiConfig();
@@ -102,6 +123,47 @@ export async function userRegister(params) {
 }
 
 /**
+ * 无感刷新Token（空参数，内部封装提前刷新时间）
+ */
+export async function refreshUserToken() {
+    const userStore = useUserStore()
+    const delayTaskStore = useDelayTaskStore()
+
+    // 从Store读取必需数据
+    const { rememberMe, refreshTokenVO } = userStore;
+    const oldAccessToken = refreshTokenVO?.accessToken;
+
+    try {
+        // 封装业务参数 → 直接传给API，无默认值、无逻辑处理
+        const apiParams = {
+            rememberMe,
+            oldAccessToken,
+            expireTime: PRE_REFRESH_TIME
+        };
+
+        // 调用接口
+        const res = await refreshUserTokenApi(apiParams);
+        const RefreshTokenVO = res.data.data;
+
+        // 更新Store
+        userStore.setRefreshTokenVO(RefreshTokenVO);
+
+        // 接力刷新任务
+        delayTaskStore.stopTask();
+        delayTaskStore.startDelayTask(
+            userStore.refreshTokenVO.accessTokenExpirationTime - PRE_REFRESH_TIME,
+            refreshUserToken
+        );
+
+        console.log('✅ Token已接力');
+        return RefreshTokenVO;
+    } catch (error) {
+        console.error('❌ Token刷新失败', error);
+        return Promise.reject(error);
+    }
+}
+
+/**
  * 退出登录服务
  */
 // 独立的退出登录函数（简化版）
@@ -116,6 +178,10 @@ export async function performLogout() {
         // 简化错误提示，不中断流程
         console.warn('⚠️ 后端退出接口调用失败（可能token已过期），继续清理本地状态', error)
     }
+
+    // ===================== 【核心】退出登录 → 立即停止自动续期任务 =====================
+    delayTaskStore.stopTask();
+    console.log('✅ 退出登录 → 已停止Token自动刷新任务')
 
     // 无论接口是否成功，都清理本地状态
     userStore.$reset()

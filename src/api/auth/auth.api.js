@@ -24,6 +24,23 @@ export async function quickLogin(loginDTO) {
         data: loginDTO
     })
 }
+/**
+ * 刷新双令牌Api
+ * 对应后端：POST /api/user/refresh-token
+ * @param {Object} params - 业务参数封装（api层不处理逻辑）
+ * @param {boolean} params.rememberMe - 记住我状态
+ * @param {string} params.oldAccessToken - 旧AccessToken（用于拉黑）
+ * @param {number} params.expireTime - 过期时间/提前刷新时间（单位：毫秒）
+ * @returns {Promise<RefreshTokenVO>}
+ */
+export async function refreshUserTokenApi(params) {
+    return withAuth(userRequest, {
+        url: `/api/user/refresh-token`,
+        method: 'POST',
+        // 后端@RequestBody接收，用data传递DTO参数
+        data: params,
+    }, 'refresh')
+}
 
 // 新增：退出登录（需携带 token）
 export async function logout() {

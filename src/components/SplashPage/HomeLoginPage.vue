@@ -193,7 +193,7 @@ const handleLogin = async () => {
 
   // 第三步：调用登录API
   try {
-    await loginService(email.value, password.value)
+    await loginService(email.value, password.value, rememberMe.value)
 
     // 处理记住密码
     if (rememberMe.value) {

@@ -15,6 +15,34 @@ export const useSessionStore = defineStore('session', () => {
 
     // 1. 会话列表（原有）
     const chatList = ref([])
+
+    // 🔥 核心优化1：自动给【每个会话】赋值后端同款字段：normalUnreadCount / splitUnreadCount
+    // 遍历会话 → 计算未读数 → 直接挂载到会话对象上（和后端字段名完全一致）
+    const fillSessionUnreadCount = computed(() => {
+        chatList.value.forEach(session => {
+            const sessionUuid = session.sessionUuid
+            if (!sessionUuid) return
+
+            // 获取当前会话消息
+            const messages = mergedSessionMessages.value[sessionUuid] || []
+
+            // 1. 非切分未读：匹配后端字段 normalUnreadCount
+            const normalUnreadCount = messages.filter(msg => msg.isRead === false).length
+
+            // 2. 切分未读：匹配后端字段 splitUnreadCount
+            let splitUnreadCount = 0
+            messages.forEach(msg => {
+                const splits = msg.splitContent || []
+                splitUnreadCount += splits.filter(s => s.isRead === false).length
+            })
+
+            // 🔥 关键：直接给会话对象赋值（和后端字段名1:1对齐）
+            session.normalUnreadCount = normalUnreadCount
+            session.splitUnreadCount = splitUnreadCount
+        })
+        return chatList.value
+    })
+
     // 2. 当前选中的会话UUID（原有）
     const currentSessionUuid = ref('')
 
@@ -23,6 +51,23 @@ export const useSessionStore = defineStore('session', () => {
 
     // 🔥 【新增】AI角色列表（你的需求）
     const aiRoleList = ref([])
+
+    // 🔥 核心：computed 自动构建【roleId => 会话数组】映射
+    // 自动依赖 chatList，数据变化时实时更新！
+    const roleSessionMap = computed(() => {
+        const map = {}
+        // 遍历所有会话，按角色ID分组
+        chatList.value.forEach(session => {
+            const roleId = session.roleId
+            // 不存在则初始化空数组
+            if (!map[roleId]) {
+                map[roleId] = []
+            }
+            // 推入当前会话（包含sessionUuid/roleId等全部信息）
+            map[roleId].push(session)
+        })
+        return map
+    })
 
     // 🔥 【新增】当前选中的角色ID（参照你写法来的）
     const currentRoleId = ref(null)
@@ -37,33 +82,16 @@ export const useSessionStore = defineStore('session', () => {
     // ✅【你要的新数据结构】会话UUID => 最后一条消息 键值对映射
     const sessionLastMessage = ref({})
 
-    // 🔥 核心：全会话未读数（自动计算所有会话）
-    // 结构：{ [sessionUuid]: { normal: number, split: number } }
+    // 核心优化2：极简版全会话未读数（直接从会话字段读取，无需重复计算）
     const sessionAllUnreadCount = computed(() => {
         const result = {}
-
-        // 遍历【所有会话】，逐个计算未读数
-        chatList.value.forEach(session => {
-            const sessionUuid = session.sessionUuid
-            if (!sessionUuid) return
-
-            // 获取当前会话的消息数组
-            const messages = mergedSessionMessages.value[sessionUuid] || []
-
-            // 1. 计算：非切分未读（消息isRead=false）
-            const normal = messages.filter(msg => msg.isRead === false).length
-
-            // 2. 计算：切分未读（分片isRead=false总数）
-            let split = 0
-            messages.forEach(msg => {
-                const splits = msg.splitContent || []
-                split += splits.filter(s => s.isRead === false).length
-            })
-
-            // 存入结果
-            result[sessionUuid] = { normal, split }
+        // 直接取已经计算好的会话字段，0计算成本
+        fillSessionUnreadCount.value.forEach(session => {
+            result[session.sessionUuid] = {
+                normalUnreadCount: session.normalUnreadCount,
+                splitUnreadCount: session.splitUnreadCount
+            }
         })
-
         return result
     })
 
@@ -189,23 +217,6 @@ export const useSessionStore = defineStore('session', () => {
         aiRoleList.value = realRoleData || []
     }
 
-    // 🔥 核心：computed 自动构建【roleId => 会话数组】映射
-    // 自动依赖 chatList，数据变化时实时更新！
-    const roleSessionMap = computed(() => {
-        const map = {}
-        // 遍历所有会话，按角色ID分组
-        chatList.value.forEach(session => {
-            const roleId = session.roleId
-            // 不存在则初始化空数组
-            if (!map[roleId]) {
-                map[roleId] = []
-            }
-            // 推入当前会话（包含sessionUuid/roleId等全部信息）
-            map[roleId].push(session)
-        })
-        return map
-    })
-
     // 原有：设置当前会话UUID
     const setCurrentSessionUuid = (uuid) => {
         currentSessionUuid.value = uuid
@@ -221,25 +232,32 @@ export const useSessionStore = defineStore('session', () => {
      * 设置【占位符会话】
      * @param {string} sessionUuid - 传入的会话UUID
      * @description 创建仅包含会话ID+角色ID的极简占位会话，推入聊天列表，自动去重
+     * 🔥 新增：同时为该会话初始化 空消息数组，解决消息无渲染位置的问题
      */
     const setPlaceholderSession = (sessionUuid) => {
         // 安全校验：传入的UUID不能为空
         if (!sessionUuid) return
 
-        // 🔴 核心去重：字段改成 sessionUuid（和你查找的字段完全一致）
+        // 🔴 核心去重：检查会话列表中是否已存在
         const isExist = chatList.value.some(item => item.sessionUuid === sessionUuid)
         if (isExist) return
 
-        // 🎯 关键修复：字段名改成 sessionUuid，完美匹配你的 getAiAvatarUrl 查找逻辑
+        // 🎯 1. 创建占位会话（原有逻辑不变）
         const placeholderSession = {
-            sessionUuid: sessionUuid,   // 👈 就改这里！和你原有代码完全对齐
+            sessionUuid: sessionUuid,
             roleId: currentRoleId.value
         }
 
-        // ✅ 将占位符添加到会话列表
+        // ✅ 2. 将占位符添加到会话列表（原有逻辑不变）
         chatList.value.push(placeholderSession)
 
-        // 自动将该占位符设为当前选中会话
+        // 🔥 3. 核心新增：为该会话初始化【空消息数组】，保证消息能正常渲染
+        // 如果会话不存在消息映射，则赋值空数组
+        if (!sessionMessages.value[sessionUuid]) {
+            sessionMessages.value[sessionUuid] = []
+        }
+
+        // ✅ 4. 自动将该占位符设为当前选中会话（原有逻辑不变）
         currentSessionUuid.value = sessionUuid
     }
 
@@ -398,9 +416,16 @@ export const useSessionStore = defineStore('session', () => {
     const getSessionUnread = (sessionUuid) => {
         // 无会话直接返回0
         if (!sessionUuid) return 0
-        const type = configStore.isSplitMessageEnabled ? 'split' : 'normal'
-        // 返回对应未读数
-        return sessionAllUnreadCount.value[sessionUuid]?.[type] || 0
+        const isSplit = configStore.isSplitMessageEnabled
+
+        // 获取未读数据
+        const unread = sessionAllUnreadCount.value[sessionUuid]
+        if (!unread) return 0
+
+        // 🔥 核心：匹配后端标准字段名
+        return isSplit
+            ? unread.splitUnreadCount || 0
+            : unread.normalUnreadCount || 0
     }
 
     // 🔥 标记单条消息已读（主消息+全分片）【精简最终版】

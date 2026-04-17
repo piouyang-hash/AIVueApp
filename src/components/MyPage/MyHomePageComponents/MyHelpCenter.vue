@@ -10,41 +10,52 @@
         <div class="help-section">
           <h2 class="section-title">账户相关</h2>
           <div class="faq-item">
-            <h3 class="faq-question">Q：如何登录账号？</h3>
+            <h3 class="faq-question">Q：如何登录/注册账号？</h3>
             <p class="faq-answer">
-              A：进入“我的”页面，点击“登录”按钮，输入手机号/邮箱和密码即可登录；也可选择验证码快捷登录。</p>
+              A：进入「我的」页面，点击登录/注册按钮，支持手机号验证码快捷登录，无需密码即可快速使用。</p>
           </div>
           <div class="faq-item">
-            <h3 class="faq-question">Q：忘记密码怎么办？</h3>
-            <p class="faq-answer">A：登录页面点击“忘记密码”，通过绑定的手机号或邮箱接收验证码，重置新密码即可。</p>
+            <h3 class="faq-question">Q：如何退出登录？</h3>
+            <p class="faq-answer">A：进入「我的」页面，滑动至底部，点击退出登录按钮，即可安全退出当前账号。</p>
           </div>
         </div>
 
-        <!-- 书籍操作 -->
+        <!-- AI对话使用 -->
         <div class="help-section">
-          <h2 class="section-title">书籍操作</h2>
+          <h2 class="section-title">AI对话使用</h2>
           <div class="faq-item">
-            <h3 class="faq-question">Q：如何上传书籍？</h3>
-            <p class="faq-answer">
-              A：进入“图书馆”页面，点击右上角“上传书籍”按钮，选择本地EPUB格式文件即可上传，目前仅支持EPUB格式。</p>
+            <h3 class="faq-question">Q：如何发起AI对话？</h3>
+            <p class="faq-answer">A：进入聊天页面，在底部输入框输入你的问题，点击发送按钮，AI会立即为你解答。</p>
           </div>
           <div class="faq-item">
-            <h3 class="faq-question">Q：图书馆的书籍如何分类？</h3>
-            <p class="faq-answer">A：图书馆默认分为“已上传”“已收藏”“最近阅读”三类，也可手动创建自定义书架分类管理书籍。</p>
+            <h3 class="faq-question">Q：如何复制AI回复内容？</h3>
+            <p class="faq-answer">A：长按AI消息气泡，在弹出的菜单中选择「复制」，即可快速复制回复内容。</p>
           </div>
         </div>
 
-        <!-- 阅读相关 -->
+        <!-- 会话管理 -->
         <div class="help-section">
-          <h2 class="section-title">阅读相关</h2>
+          <h2 class="section-title">会话管理</h2>
           <div class="faq-item">
-            <h3 class="faq-question">Q：阅读进度会自动保存吗？</h3>
-            <p class="faq-answer">
-              A：会的！阅读时每翻页或停留超过10秒，系统会自动保存当前章节和页码，下次打开书籍可直接回到上次阅读位置。</p>
+            <h3 class="faq-question">Q：如何创建新会话？</h3>
+            <p class="faq-answer">A：在聊天列表页面，点击右上角新建按钮，即可创建全新的AI对话会话。</p>
           </div>
           <div class="faq-item">
-            <h3 class="faq-question">Q：如何调整阅读字体和背景？</h3>
-            <p class="faq-answer">A：阅读页面点击屏幕中央唤起菜单，可调整字体大小、字体样式、背景颜色，支持护眼模式切换。</p>
+            <h3 class="faq-question">Q：如何删除会话？</h3>
+            <p class="faq-answer">A：左滑会话条目，点击删除按钮，确认后即可删除该会话及所有对话记录。</p>
+          </div>
+        </div>
+
+        <!-- 角色功能 -->
+        <div class="help-section">
+          <h2 class="section-title">角色功能</h2>
+          <div class="faq-item">
+            <h3 class="faq-question">Q：如何切换AI角色？</h3>
+            <p class="faq-answer">A：在聊天列表选择对应角色会话，或新建会话时选择想要的AI角色即可切换。</p>
+          </div>
+          <div class="faq-item">
+            <h3 class="faq-question">Q：角色支持自定义吗？</h3>
+            <p class="faq-answer">A：目前支持使用预设AI角色，后续会逐步开放自定义角色功能。</p>
           </div>
         </div>
 
@@ -52,7 +63,7 @@
         <div class="help-section">
           <h2 class="section-title">其他问题</h2>
           <div class="faq-item">
-            <p class="faq-answer">如有其他使用问题，可通过“我的-意见反馈”提交问题，我们会尽快回复处理~</p>
+            <p class="faq-answer">如有其他使用问题，可通过「我的-意见反馈」提交问题，我们会尽快为你处理~</p>
           </div>
         </div>
       </div>
@@ -70,16 +81,14 @@ const router = useRouter()
 
 // 返回上一页
 const handleBack = () => {
-  router.push({name: 'MyHomePageMain'}) // 或跳转到指定页面 router.push('/personal-page/my')
+  router.push({name: 'MyHomePageMain'})
 }
 </script>
 
 <style scoped>
 .help-center-page {
   overflow-y: auto;
-  /* 新增：底部预留60px空间，避开导航栏 */
   padding-bottom: 60px;
-  /* 可选：防止padding撑开容器高度，加盒模型优化（通用最佳实践） */
   box-sizing: border-box;
 }
 
