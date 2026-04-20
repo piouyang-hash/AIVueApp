@@ -1,12 +1,13 @@
 import {
-    userChatWithMemoryApi,
     publicChatApi,
-    userSlidingWindowStreamChatApi,
-    testAsyncStreamApi, stopAiStreamChatApi
+    stopAiStreamChatApi,
+    testAsyncStreamApi,
+    userChatWithMemoryApi,
+    userSlidingWindowStreamChatApi
 } from "@/api/ai_chat/ai_chat.api.js"; // 接口函数路径
-import { handleApiResponse } from "@/api/constants/ApiFunctionCommon.js";
-import {useSessionStore} from "@/stores/sessionStore.js";
+import {handleApiResponse} from "@/api/constants/ApiFunctionCommon.js";
 import {storeToRefs} from "pinia";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
 
 /**
  * 登录态AI对话（关联用户记忆）
@@ -51,8 +52,8 @@ export async function stopAiStreamChat(sessionUuid, taskId) {
  */
 export async function testAsyncStream(msg, sessionUuid) {
     // ========== 🔥 新增：从 Pinia 仓库获取当前角色 ID（无侵入，不修改函数参数） ==========
-    const sessionStore = useSessionStore()
-    const { currentRoleId } = storeToRefs(sessionStore)
+    const aiRoleStore = useAiRoleStore()
+    const { currentRoleId } = storeToRefs(aiRoleStore)
     // 组装接口要求的实体对象
     const requestParams = {
         message: msg,
@@ -76,8 +77,8 @@ export async function testAsyncStream(msg, sessionUuid) {
  */
 export function userSlidingWindowStreamChat(msg, sessionUuid, onData, onEnd, onError) {
     // ========== 🔥 新增：从 Pinia 仓库获取当前角色 ID（无侵入，不修改函数参数） ==========
-    const sessionStore = useSessionStore()
-    const { currentRoleId } = storeToRefs(sessionStore)
+    const aiRoleStore = useAiRoleStore()
+    const { currentRoleId } = storeToRefs(aiRoleStore)
 
     // ========== 1. 核心校验：保留原有 + 新增UUID格式校验 ==========
     // 校验1：消息非空且为字符串
@@ -167,45 +168,27 @@ export function parseChatChunk(chunk, onMeta, onText, onFinish, onParseError) {
             throw new Error('流式分片数据为空');
         }
 
-        let realData;
-        // 处理后端返回的 "data: {...}" 字符串，转为JSON对象
-        if (typeof chunk === 'string' && chunk.startsWith('data: ')) {
-            const jsonStr = chunk.replace('data: ', '').trim();
+        // 提取核心参数
+        const { sessionUuid, content, isFirst, isEnd } = chunk;
 
-            // 👇 【核心修复】给JSON.parse加容错，解析失败不抛错，当成纯文本
-            try {
-                realData = JSON.parse(jsonStr);
-            } catch (e) {
-                // 解析失败：说明是纯文本，直接作为content返回
-                realData = { content: jsonStr };
-            }
-        } else {
-            // 非data:格式，直接作为纯文本
-            realData = { content: chunk };
-        }
-
-        // 适配后端字段：isFirst / isEnd
-        const { content, isFirst, isEnd } = realData;
-
-        // 1. 结束帧
+        // 1. 结束帧：sessionUuid 在前，taskId 在后
         if (isEnd === true) {
-            onFinish && typeof onFinish === 'function' && onFinish();
+            onFinish && typeof onFinish === 'function' && onFinish(sessionUuid, content);
             return;
         }
 
-        // 2. 首帧（元数据）
+        // 2. 首帧：sessionUuid 在前，meta 元数据在后
         if (isFirst === true) {
             if (!content || typeof content !== 'object' || Array.isArray(content)) {
                 throw new Error('首帧格式错误：非ChatStreamMetaDTO对象');
             }
-            onMeta && typeof onMeta === 'function' && onMeta(content);
+            onMeta && typeof onMeta === 'function' && onMeta(sessionUuid, content);
             return;
         }
 
-        // 3. 普通文本帧
+        // 3. 普通文本帧：sessionUuid 在前，content 对象在后
         if (content != null && typeof onText === 'function') {
-            const text = String(content).trim();
-            onText(text);
+            onText(sessionUuid, content);
         }
 
     } catch (err) {

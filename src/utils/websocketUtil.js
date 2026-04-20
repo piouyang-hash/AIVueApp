@@ -77,7 +77,7 @@ class WebSocketClient {
 
             this.ws.onmessage = (event) => {
                 const rawData = event.data;
-                // console.log(`WS工具类：收到原始消息 → ${rawData}`);
+                console.log(`WS工具类：收到原始消息 → ${rawData}`);
                 self._callbacks.message?.(rawData, event);
             };
 

@@ -47,10 +47,10 @@
 </template>
 
 <script setup>
-import {useSessionStore} from '@/stores/sessionStore.js';
 import {useModalStore} from '@/stores/modalStore.js'
 import {ref, watch, nextTick, computed, onMounted, onUnmounted} from 'vue'
 import {deleteChatSession, topChatSession, untopChatSession} from "@/services/ai_chat.session.service.js";
+import {useChatDomainStore} from "@/stores/AiChat/session-related/combineMethod/ChatDomainStore.js";
 
 const modalStore = useModalStore()
 
@@ -61,7 +61,7 @@ const menuWidth = ref(0)    // 实际宽度（用于边界判断）
 const viewportHeight = ref(window.innerHeight)
 const viewportWidth = ref(window.innerWidth)
 const gap = 10
-const sessionStore = useSessionStore()
+const chatDomainStore = useChatDomainStore()
 
 // 监听窗口大小（完全保留）
 const handleResize = () => {
@@ -210,7 +210,7 @@ const handleMenuClick = async (label) => {
             // 2. 前端乐观更新：标记删除/隐藏会话
             currentItem.isDeleted = 1;
             console.log("会话删除成功");
-            sessionStore.deleteSessionByUuid(sessionUuid);
+            chatDomainStore.deleteSessionByUuid(sessionUuid);
           },
           () => { // 取消删除
             console.log("用户取消删除会话");

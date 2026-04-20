@@ -101,7 +101,6 @@ export const useSessionStore = defineStore('session', () => {
     // 🔥 核心新增：会话输入框配置映射
     // 结构：{ sessionUuid: { inputValue: 输入内容, inputHeight: 输入框高度 } }
     // 一个ID 精准对应 一组输入框参数！
-
     const sessionInputConfig = ref({})
 
 
@@ -170,14 +169,55 @@ export const useSessionStore = defineStore('session', () => {
      */
     const sessionTaskMap = ref({})
 
+    const taskMessageMap = computed(() => {
+        const resultMap = {};
+        const sessionTaskMapData = sessionTaskMap.value;
+
+        // 遍历所有会话
+        Object.keys(sessionTaskMapData).forEach((sessionUuid) => {
+            const taskList = sessionTaskMapData[sessionUuid] || [];
+
+            // 遍历任务：只要有 taskId 就存入
+            taskList.forEach((taskItem) => {
+                const taskId = taskItem.taskId;
+                if (!taskId) return;
+
+                // 🔥 仅提取用户消息 ID，无则 null
+                const userMessageId = waitingUserMessage.value[sessionUuid]?.[taskId]?.messageId ?? null;
+
+                // 🔥 仅提取 AI 消息 ID，无则 null
+                const aiMessageId = streamingAiMessage.value[sessionUuid]?.[taskId]?.messageId ?? null;
+
+                // 任务状态
+                const taskStatus = taskItem.status ?? null;
+
+                // 核心：只存两个 ID + 状态
+                resultMap[taskId] = {
+                    userMessageId,
+                    aiMessageId,
+                    taskStatus
+                };
+            });
+        });
+
+        return resultMap;
+    });
+
     // 原有：获取会话列表
+    // 🔥 修改后：有数据就不请求接口（会话列表）
     const fetchUserSessions = async () => {
+        // ✅【核心新增】开头判断：已有数据，直接return，不发请求
+        if (chatList.value && chatList.value.length > 0) {
+            console.log('会话列表已有数据，跳过接口请求');
+            return;
+        }
+
         console.log('开始调用getUserNormalSessions接口...')
         const realSessionData = await getUserNormalSessions()
         console.log('从接口获取的正常会话数据：', realSessionData)
         chatList.value = realSessionData || []
 
-        // ✅ 核心：判断是否已经填充过，已填充则直接跳过，不再重复赋值
+        // 原有逻辑：判断是否已经填充过，已填充则直接跳过
         if (Object.keys(sessionLastMessage.value).length > 0) {
             console.log('sessionLastMessage 已初始化，跳过填充');
             return;
@@ -209,8 +249,14 @@ export const useSessionStore = defineStore('session', () => {
         sessionLastMessage.value[sessionUuid] = content;
     };
 
-    // 🔥 【新增】获取我的AI角色列表（完全对标你的原有方法）
+    // 🔥 修改后：有数据就不请求接口（AI角色列表）
     const fetchMyAiRoleList = async () => {
+        // ✅【核心新增】开头判断：已有数据，直接return，不发请求
+        if (aiRoleList.value && aiRoleList.value.length > 0) {
+            console.log('AI角色列表已有数据，跳过接口请求');
+            return;
+        }
+
         console.log('开始调用getMyAiRoleList接口...')
         const realRoleData = await getMyAiRoleList()
         console.log('从接口获取的AI角色数据：', realRoleData)
@@ -319,11 +365,11 @@ export const useSessionStore = defineStore('session', () => {
         // 追加处理完成的标准消息
         sessionMessages.value[sessionUuid].push(finalMessage);
 
-        // 🔥 强制触发 Vue 响应式更新
+        // 强制触发 Vue 响应式更新
         sessionMessages.value = { ...sessionMessages.value };
     };
 
-    // 🔥 最终版：填充临时消息（按 sessionUuid + taskId 精准定位，彻底解耦）
+    // 最终版：填充临时消息（按 sessionUuid + taskId 精准定位，彻底解耦）
     // 对标 AI：update + clear 二合一，仅操作指定taskId的等待用户消息
     const fillTempMessage = (sessionUuid, meta, taskId) => {
         // 1. 双重校验：必须拿到会话 + taskId 容器
@@ -335,7 +381,6 @@ export const useSessionStore = defineStore('session', () => {
         // 2. 填充字段
         waitingMsg.messageId = meta.userMessageId;
         waitingMsg.content = meta.userMessage;
-        waitingMsg.parentMsgId = meta.parentMsgId;
         waitingMsg.sessionUuid = meta.sessionUuid;
         waitingMsg.userId = meta.userId;
         waitingMsg.isComplete = true;
@@ -347,8 +392,8 @@ export const useSessionStore = defineStore('session', () => {
         console.log(`✅ 清理完成，无残留：taskId=${taskId}`);
     };
 
-    // 🔥 修正：创建等待中用户消息（参数新增 taskId，结构对齐AI）
-    // 🔥 新增参数：messageId（后端生成的用户消息ID）
+    // 修正：创建等待中用户消息（参数新增 taskId，结构对齐AI）
+    // 新增参数：messageId（后端生成的用户消息ID）
     const createUserWaitingMessage = (sessionUuid, content, taskId, messageId) => {
         const userMessage = {
             content: content,
@@ -382,7 +427,6 @@ export const useSessionStore = defineStore('session', () => {
             role: 'ASSISTANT',
             createTime: new Date().toISOString(),
             messageId: meta.aiMessageId,
-            parentMsgId: meta.parentMsgId,
             sessionUuid: meta.sessionUuid,
             sortTimestamp: Date.now(),
             splitContent: meta.aiReplyContent
@@ -481,7 +525,7 @@ export const useSessionStore = defineStore('session', () => {
     }
 
     // 更新AI回复消息（双维度定位：sessionUuid + taskId）
-    const updateAiReplyMessage = (sessionUuid, messageId, text, taskId) => {
+    const updateAiReplyMessage = (sessionUuid, text, taskId) => {
         // 1. 找到对应会话
         const sessionTaskMap = streamingAiMessage.value[sessionUuid];
         if (!sessionTaskMap) return;
@@ -489,9 +533,6 @@ export const useSessionStore = defineStore('session', () => {
         // 2. 找到对应 taskId 的正在回复的消息
         const aiMessage = sessionTaskMap[taskId];
         if (!aiMessage) return;
-
-        // 双重校验：消息ID + 任务ID 都匹配才更新
-        if (aiMessage.messageId !== messageId || aiMessage.taskId !== taskId) return;
 
         // 正常更新内容
         aiMessage.content += text;
@@ -713,58 +754,93 @@ export const useSessionStore = defineStore('session', () => {
 
     // 暴露所有数据和方法
     return {
-        chatList,
-        aiRoleList,
-        currentSessionUuid,
-        currentRoleId,
-        isThinkMode,
-        isNetworkMode,
-        sessionMessages, // 暴露消息映射
-        sessionLastMessage,
-        BASE_HEIGHT,
-        sessionInputConfig,
-        roleSessionMap,
-        waitingUserMessage,
-        streamingAiMessage,
-        fetchUserSessions,
-        updateSessionLastMessage,
+        // ======================================
+        // 🔥 1. 核心列表数据（页面主数据）
+        // ======================================
+        chatList,                // 会话列表
+        aiRoleList,              // AI角色列表
 
-        // 未读相关核心导出
-        sessionAllUnreadCount, // 全会话未读对象
-        getSessionUnread,      // 查询未读数
-        markMessageAsRead,     // 标记单条消息已读
-        clearSessionUnread,     // 清空会话未读
-        markSingleSplitMessageAsRead,
+        // ======================================
+        // 🔥 2. 当前选中状态（页面激活项）
+        // ======================================
+        currentSessionUuid,      // 当前会话ID
+        currentRoleId,           // 当前角色ID
+        expandedRoleId,          // 展开的角色ID
 
-        getCurrentMergedMessages,
-        mergedSessionMessages,
-        expandedRoleId, // 👈 新增
-        setPlaceholderSession,
-        toggleExpandRole, // 👈 新增
-        fetchMyAiRoleList,
-        deleteSessionByUuid,
-        setCurrentSessionUuid,
-        setCurrentRoleId,
-        setSessionMessages, // 暴露设置全量消息
-        pushMessageToSession, // 暴露追加单条消息
-        currentInputConfig, // 组件直接用：当前输入框配置
-        setCurrentSessionInput,
-        clearStreamingMessageByUuid,
-        fillTempMessage,
-        createUserWaitingMessage,
-        createAiReplyMessage,
-        updateAiReplyMessage,
-        resetCurrentSessionInput, // 重置当前输入框
-        fetchCurrentSessionMessages, // 🔥 组件无参数调用的方法
-        toggleThinkMode,
-        toggleNetworkMode,
+        // ======================================
+        // 🔥 3. 消息数据存储（所有聊天消息）
+        // ======================================
+        sessionMessages,         // 会话消息映射
+        mergedSessionMessages,   // 合并后的会话消息
+        sessionLastMessage,      // 会话最后一条消息
+        waitingUserMessage,      // 等待中的用户消息
+        streamingAiMessage,      // AI流式输出消息
+        taskMessageMap,          // 任务消息映射
 
+        // ======================================
+        // 🔥 4. 未读消息管理（核心未读功能）
+        // ======================================
+        sessionAllUnreadCount,   // 全会话未读总数
+        getSessionUnread,        // 查询单个会话未读数
+        markMessageAsRead,       // 标记单条消息已读
+        markSingleSplitMessageAsRead, // 标记拆分消息已读
+        clearSessionUnread,      // 清空会话未读
 
-        sessionTaskMap,
-        addSessionTask,              // 发送消息 → 绑定taskId
-        updateSessionTaskStatus,     // 流式结束 → 标记完成
-        getCurrentPendingTask,       // 重回页面 → 获取未完成taskId
-        clearSessionTasks,
-        clearAllSessionTasks
+        // ======================================
+        // 🔥 5. 功能模式开关
+        // ======================================
+        isThinkMode,             // 思考模式
+        isNetworkMode,           // 联网模式
+        toggleThinkMode,         // 切换思考模式
+        toggleNetworkMode,       // 切换联网模式
+
+        // ======================================
+        // 🔥 6. 输入框配置
+        // ======================================
+        BASE_HEIGHT,             // 基础高度
+        sessionInputConfig,      // 会话输入配置
+        currentInputConfig,      // 当前输入框配置
+        setCurrentSessionInput,  // 设置当前会话输入
+        resetCurrentSessionInput,// 重置当前输入框
+
+        // ======================================
+        // 🔥 7. 数据获取（接口请求）
+        // ======================================
+        fetchUserSessions,       // 获取用户会话列表
+        fetchMyAiRoleList,       // 获取AI角色列表
+        fetchCurrentSessionMessages, // 获取当前会话消息
+
+        // ======================================
+        // 🔥 8. 会话核心操作
+        // ======================================
+        setCurrentSessionUuid,   // 设置当前会话ID
+        setCurrentRoleId,        // 设置当前角色ID
+        deleteSessionByUuid,     // 删除会话
+        setPlaceholderSession,   // 设置占位会话
+        toggleExpandRole,        // 切换角色展开/收起
+        updateSessionLastMessage,// 更新会话最后一条消息
+        roleSessionMap,          // 角色会话映射
+
+        // ======================================
+        // 🔥 9. 消息操作（发送/更新/清空）
+        // ======================================
+        setSessionMessages,      // 设置会话全量消息
+        pushMessageToSession,    // 追加单条消息
+        getCurrentMergedMessages,// 获取当前合并消息
+        clearStreamingMessageByUuid, // 清空流式消息
+        fillTempMessage,         // 填充临时消息
+        createUserWaitingMessage,// 创建用户等待消息
+        createAiReplyMessage,    // 创建AI回复消息
+        updateAiReplyMessage,    // 更新AI回复消息
+
+        // ======================================
+        // 🔥 10. AI任务管理（流式/任务）
+        // ======================================
+        sessionTaskMap,          // 会话任务映射
+        addSessionTask,          // 添加会话任务
+        updateSessionTaskStatus, // 更新任务状态
+        getCurrentPendingTask,   // 获取当前待处理任务
+        clearSessionTasks,       // 清空会话任务
+        clearAllSessionTasks     // 清空所有会话任务
     }
 })

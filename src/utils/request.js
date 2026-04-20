@@ -6,10 +6,14 @@ import { useToastStore } from '@/stores/toastStore'
 // ========== 抽离通用登录/Token逻辑（仅修改这里：新增返回accessToken/refreshToken） ==========
 function getLoginStateAndToken() {
     const userStore = useUserStore()
-    const token = userStore.token // 原token保留
+    const token = userStore.token // 原token保留（兼容旧代码）
     // 从VO中获取最新双Token，兼容空值
-    const { accessToken, refreshToken } = userStore.refreshTokenVO
-    const isLogin = !!token // 登录判断不变
+    const { accessToken, refreshToken } = userStore.refreshTokenVO || {}
+
+    // ===================== 核心修改 =====================
+    // 登录条件：两个Token 必须 都有值（缺一不可）
+    const isLogin = !!(accessToken && refreshToken)
+
     // 返回：原有token + VO中的最新双Token
     return { isLogin, token, accessToken, refreshToken }
 }
@@ -32,20 +36,6 @@ export function createRequest(baseURL, timeout = 5000) {
         baseURL: baseURL,
         timeout: timeout
     });
-}
-
-// ========== 2. 鉴权头处理（无修改） ==========
-export function addAuthHeader(config) {
-    const { isLogin, token } = getLoginStateAndToken();
-    if (!isLogin) {
-        showLoginTip();
-        return null;
-    }
-    config.headers = {
-        ...config.headers,
-        'Authorization': `Bearer ${token}`
-    };
-    return config;
 }
 
 // ========== 【新增1】短期AccessToken专用（业务接口用） ==========

@@ -16,23 +16,25 @@
 import {onMounted} from 'vue'
 import ChatHeader from "@/components/AiSession/chat-header.vue";
 import ContextMenu from "@/components/AiSession/ContextMenu.vue";
-import { useSessionStore } from '@/stores/sessionStore'
 import ConfirmModal from "@/components/Tiny/ConfirmModal.vue";
 // 🔥 新增：导入AI配置仓库
 import { useAiSoftwareConfigStore } from '@/stores/aiSoftwareConfig'
 import SessionList from "@/components/AiSession/SessionList.vue";
 import RoleList from "@/components/AiSession/RoleList.vue";
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
 
 // 🔥 新增：获取开关状态
 const { isAgentEnabled } = useAiSoftwareConfigStore()
-const sessionStore = useSessionStore()
+const baseSessionStore = useBaseSessionStore()
+const aiRoleStore = useAiRoleStore()
 
 // 3. 页面挂载后调用真实接口
 onMounted(async () => {
   // 🔥 异步并行：两个接口同时请求，速度更快
   await Promise.all([
-    sessionStore.fetchUserSessions(),
-    sessionStore.fetchMyAiRoleList()
+    baseSessionStore.fetchUserSessions(),
+    aiRoleStore.fetchMyAiRoleList()
   ])
 })
 

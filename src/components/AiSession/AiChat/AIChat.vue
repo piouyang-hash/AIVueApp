@@ -22,9 +22,9 @@
 
       <!-- 占位 -->
       <div class="header-placeholder"></div>
-      <!-- ✅ 修正：使用sessionStore判断当前会话消息数量 -->
+
       <SvgIcon
-          v-if="(sessionStore.sessionMessages[sessionStore.currentSessionUuid] || []).length > 0"
+          v-if="(aiMessageStore.sessionMessages[baseSessionStore.currentSessionUuid] || []).length > 0"
           icon-class="add-icon"
           size="1.5rem"
           className="icon"
@@ -32,7 +32,7 @@
           color="var(--text-tertiary)"
       />
       <meridian-vein
-          v-if="(sessionStore.sessionMessages[sessionStore.currentSessionUuid] || []).length > 0"
+          v-if="(aiMessageStore.sessionMessages[baseSessionStore.currentSessionUuid] || []).length > 0"
           :width="30"
           :height="30"
       />
@@ -70,12 +70,19 @@ import {
   userSlidingWindowStreamChat
 } from "@/services/ai_chat.service.js";
 // 导入自治组件AiChatContent
-import { useSessionStore } from '@/stores/sessionStore.js'
 import { useAiMessageReceiverStore } from '@/stores/aiMessageReceiver'
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useChatDomainStore} from "@/stores/AiChat/session-related/combineMethod/ChatDomainStore.js";
+import {useAiMessageTaskStore} from "@/stores/AiChat/session-related/aiMessageTaskStore.js";
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
 
 // 初始化新仓库
-const sessionStore = useSessionStore()
 const aiReceiver = useAiMessageReceiverStore()
+const baseSessionStore = useBaseSessionStore()
+const chatDomainStore = useChatDomainStore()
+const aiMessageTaskStore = useAiMessageTaskStore()
+const aiMessageStore = useAiMessageStore()
+
 
 // 初始化实例（仅保留核心依赖）
 const route = useRoute()
@@ -84,65 +91,34 @@ const aiChatContentRef = ref(null) // 可选：获取AiChatContent组件实例
 
 // AI是否正在回复（响应式状态，模板可用）
 const isAiReplying = computed(() => {
-  const currentSid = sessionStore.currentSessionUuid
+  const currentSid = baseSessionStore.currentSessionUuid
   // 无当前会话 → 未回复
   if (!currentSid) return false
   // 获取当前会话的所有任务
-  const taskList = sessionStore.sessionTaskMap[currentSid] || []
+  const taskList = aiMessageTaskStore.sessionTaskMap[currentSid] || []
   // 存在【进行中 pending】任务 → AI 正在回复
   return taskList.some(task => task.status === 'pending')
 })
-
-// 🔥 【核心新增】页面加载 → 自动重连 WebSocket（触发后端补发）
-onMounted(() => {
-  console.log('======== 页面加载完成，尝试自动重连 WebSocket ========')
-  const sid = sessionStore.currentSessionUuid
-  const pendingTask = sessionStore.getCurrentPendingTask
-  const taskId = pendingTask.taskId
-
-  console.log('当前会话ID(sessionUuid)：', sid)
-  console.log('获取到的未完成任务：', pendingTask)
-  console.log('未完成任务ID(taskId)：', taskId)
-
-  // 判断条件
-  if (sid && taskId) {
-    console.log('✅ 满足重连条件，执行 aiReceiver.connect')
-    aiReceiver.connect(sid, taskId)
-  } else {
-    console.log('❌ 不满足重连条件：', !sid ? '缺少 sessionUuid' : '缺少 taskId / 无进行中任务')
-  }
-  console.log('=====================================================')
-})
-
-// ==============================================
-// 🔥 核心重写：适配新sessionStore的流式发送消息
-// ==============================================
-// 🔥 替换：HTTP流式取消 → WebSocket实例管理
-let currentWsClient = null
-let currentStreamCancel = null
 
 // ==============================================
 // 你的原有发送消息函数（仅替换流式请求部分）
 // ==============================================
 const handleAIInputSendMessage = async ({ content, sessionUuid }) => {
   try {
-    sessionStore.setPlaceholderSession(sessionUuid)
+    chatDomainStore.setPlaceholderSession(sessionUuid)
 
     await nextTick(() => aiChatContentRef.value?.scrollToBottom())
 
     // 1. 获取任务ID（后端返回：sessionUuid:taskId:userMessageId）
     const uniqueKey = await testAsyncStream(content, sessionUuid)
-    // 🔥 拆分出三个参数：会话ID、任务ID、用户消息ID
-    const [wsSessionUuid, taskId, userMessageId] = uniqueKey.split(':')
+    // 拆分出三个参数：会话ID、任务ID、用户消息ID
+    const [taskId, userMessageId] = uniqueKey.split(':')
 
-    // 🔥 核心：将 messageId 传给创建等待消息的方法
-    sessionStore.createUserWaitingMessage(sessionUuid, content, taskId, userMessageId)
+    // 核心：将 messageId 传给创建等待消息的方法
+    aiMessageStore.createUserWaitingMessage(sessionUuid, content, taskId, userMessageId)
 
     // 2. 保存任务
-    sessionStore.addSessionTask(sessionUuid, taskId)
-
-    // 3. 全局建立连接
-    aiReceiver.connect(wsSessionUuid, taskId)
+    aiMessageTaskStore.addSessionTask(sessionUuid, taskId)
 
   } catch (err) {
     console.error('发送失败：', err)

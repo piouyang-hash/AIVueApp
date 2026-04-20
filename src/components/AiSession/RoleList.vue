@@ -68,7 +68,6 @@
 </template>
 
 <script setup>
-import {useSessionStore} from '@/stores/sessionStore'
 import {useAiSoftwareConfigStore} from '@/stores/aiSoftwareConfig'
 import {useRouter} from 'vue-router'
 import {computed, ref} from "vue";
@@ -76,9 +75,16 @@ import { SERVICE_URLS } from '@/api/constants/serviceUrls.js'
 import generateUUID from "@/utils/uuid.js";
 import DropDownList from "@/components/AiSession/DropDownList.vue";
 import {useModalStore} from "@/stores/modalStore.js";
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
+import {useChatDomainStore} from "@/stores/AiChat/session-related/combineMethod/ChatDomainStore.js";
+import {useSessionStore} from "@/utils/sessionStore.js";
 
 const router = useRouter()
 const {isAgentEnabled, isSplitMessageEnabled} = useAiSoftwareConfigStore()
+const baseSessionStore = useBaseSessionStore()
+const aiRoleStore = useAiRoleStore()
+const chatDomainStore = useChatDomainStore()
 const sessionStore = useSessionStore()
 const modalStore = useModalStore()
 
@@ -160,7 +166,7 @@ const handleCreateNewChat = async (item) => {
     closeSlide()
 
     // 2. 核心：设置当前角色ID（你指定的store方法）
-    sessionStore.setCurrentRoleId(item.roleId)
+    aiRoleStore.setCurrentRoleId(item.roleId)
     console.log('已设置当前角色ID：', item.roleId)
 
     // 3. 生成标准UUID（对标你的写法）
@@ -168,7 +174,7 @@ const handleCreateNewChat = async (item) => {
     console.log('生成的新会话UUID：', sessionUuid)
 
     // 4. 设置当前会话UUID（对标你的写法）
-    sessionStore.setCurrentSessionUuid(sessionUuid)
+    baseSessionStore.setCurrentSessionUuid(sessionUuid)
 
     // 5. 跳转AiChat页面 ✅ 不传入任何参数
     await router.push({
@@ -230,12 +236,12 @@ const formatTime = (timeStr) => {
 // 🔥 Processed role list: Filter sessions + Attach status + ACTIVE roles first
 // 整理后的角色列表：过滤会话 + 挂载状态 + ACTIVE置顶 + 统计角色总未读数
 const filteredRoleList = computed(() => {
-  return sessionStore.aiRoleList.filter(role => {
+  return aiRoleStore.aiRoleList.filter(role => {
     // Only keep roles with sessions
-    const sessions = sessionStore.roleSessionMap[role.roleId] || []
+    const sessions = chatDomainStore.roleSessionMap[role.roleId] || []
     return sessions.length > 0
   }).map(role => {
-    const sessions = sessionStore.roleSessionMap[role.roleId] || []
+    const sessions = chatDomainStore.roleSessionMap[role.roleId] || []
     const hasActive = sessions.some(session => session.status === 'ACTIVE')
 
     // ===================== 新增：统计角色全会话未读总数 =====================
@@ -272,8 +278,8 @@ const handleClickRole = async (e, item) => {
     return
   }
   console.log('点击了AI角色：', item.roleDesc, 'roleId：', item.roleId);
-  sessionStore.toggleExpandRole(item.roleId);
-  console.log('当前角色-会话映射表 roleSessionMap：', sessionStore.roleSessionMap);
+  aiRoleStore.toggleExpandRole(item.roleId);
+  console.log('当前角色-会话映射表 roleSessionMap：', chatDomainStore.roleSessionMap);
 };
 </script>
 

@@ -26,7 +26,7 @@
       </div>
       <div class="chat-info">
         <h3 class="chat-title">{{ item.chatTitle }}</h3>
-        <p class="chat-desc">{{ formatMarkdownText(sessionStore.sessionLastMessage[item.sessionUuid] || '暂无消息')  }}</p>
+        <p class="chat-desc">{{ formatMarkdownText(baseSessionStore.sessionLastMessage[item.sessionUuid] || '暂无消息')  }}</p>
       </div>
       <div class="chat-time">{{ formatTime(item.createTime) }}</div>
     </div>
@@ -38,13 +38,15 @@
 import {computed} from 'vue'
 import {useRouter} from 'vue-router'
 import { useModalStore } from '@/stores/modalStore.js'
-import { useSessionStore } from '@/stores/sessionStore'
 import {sortChatList} from "@/utils/softSession.js";
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
 
 // 初始化Pinia的modalStore
 const modalStore = useModalStore()
 const router = useRouter()
-const sessionStore = useSessionStore()
+const baseSessionStore = useBaseSessionStore()
+const aiMessageStore = useAiMessageStore()
 
 // 1. 时间格式化工具函数（适配接口返回的UTC时间）
 const formatTime = (timeStr) => {
@@ -75,9 +77,9 @@ const handleClickItem = async (e, item) => { // 🔥 加 async 变成异步函�
   console.log('点击了对话项：', item.chatTitle, 'sessionUuid：', item.sessionUuid);
 
   // 1. 先设置当前会话UUID
-  sessionStore.setCurrentSessionUuid(item.sessionUuid)
+  baseSessionStore.setCurrentSessionUuid(item.sessionUuid)
   // 2. 🔥 提前加载当前会话的消息（无参数调用）
-  await sessionStore.fetchCurrentSessionMessages()
+  await aiMessageStore.fetchCurrentSessionMessages()
   // 3. 消息加载完成后，再跳转页面
   router.push({
     name: 'AiChat',
@@ -105,7 +107,7 @@ const handleLongPressChatItem = (e, item) => {
 // ====================== 会话列表排序核心函数（最终修复版） ======================
 const sortedChatList = computed(() => {
   // 🔥 直接调用工具类，一键排序
-  return sortChatList(sessionStore.chatList)
+  return sortChatList(baseSessionStore.chatList)
 })
 
 // ====================== AI消息文本格式化（去除Markdown） ======================

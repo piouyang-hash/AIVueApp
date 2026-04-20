@@ -118,6 +118,7 @@ const routes = [
                 component: ChatList,
                 meta: {
                     title: 'AI会话列表',
+                   //  keepAlive: true,
                     description: '展示用户的AI会话记录',
                     branch: 'ChatListPage', // 新增branch字段
                     requiresAuth: true // 新增：需要鉴权

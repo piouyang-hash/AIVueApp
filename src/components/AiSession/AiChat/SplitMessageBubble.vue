@@ -59,11 +59,13 @@ import { useUserStore } from '@/stores/user'
 import { SERVICE_URLS } from '@/api/constants/serviceUrls'
 import { useAiSoftwareConfigStore } from '@/stores/aiSoftwareConfig'
 import { useModalStore } from '@/stores/modalStore.js'
-import { useSessionStore } from '@/stores/sessionStore'
 import { storeToRefs } from 'pinia'
 import NewMarkdownViewer from '../../NewMarkdownViewer.vue'
 // 🔥 导入你的消息Pinia仓库
 import { useMessageStore } from '@/stores/messageStore'
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
 
 // 1. 定义Props（补全规范定义）
 const props = defineProps({
@@ -74,8 +76,10 @@ const props = defineProps({
 })
 
 // 2. 仓库初始化
-const sessionStore = useSessionStore()
-const { aiRoleList } = storeToRefs(sessionStore)
+const baseSessionStore = useBaseSessionStore()
+const aiMessageStore = useAiMessageStore()
+const aiRoleStore = useAiRoleStore()
+const { aiRoleList } = storeToRefs(aiRoleStore)
 const modalStore = useModalStore()
 const configStore = useAiSoftwareConfigStore()
 const userStore = useUserStore()
@@ -107,14 +111,14 @@ const getActiveId = (item) => {
 
 // 5. AI头像获取（修复传参，适配原逻辑）
 const getAiAvatarUrl = () => {
-  const sessionUuid = sessionStore.currentSessionUuid
+  const sessionUuid = baseSessionStore.currentSessionUuid
 
   if (!sessionUuid) {
     return ''
   }
 
   // 🔥 只打印一次关键信息
-  const currentSession = sessionStore.chatList.find(
+  const currentSession = baseSessionStore.chatList.find(
       session => session.sessionUuid === sessionUuid
   )
 

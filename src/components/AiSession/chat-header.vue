@@ -41,8 +41,8 @@
 import { useRouter } from 'vue-router'
 // 先导入UUID生成工具函数（根据实际路径调整）
 import generateUUID from '@/utils/uuid';
-import { useSessionStore } from '@/stores/sessionStore.js'
-const sessionStore = useSessionStore() // 初始化新仓库
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+const baseSessionStore = useBaseSessionStore() // 初始化新仓库
 // 初始化路由实例
 
 const router = useRouter()
@@ -58,7 +58,7 @@ const handleSearchClick = () => {
   console.log('【搜索图标】被点击了，可在这里编写对话搜索相关逻辑');
 };
 
-// 编辑/写图标点击事件（适配新 sessionStore）
+// 编辑/写图标点击事件
 const handleWriteClick = async () => {
   try {
     // 1. 生成标准UUIDv4（不变）
@@ -66,7 +66,7 @@ const handleWriteClick = async () => {
     console.log('生成的新会话UUID：', sessionUuid);
 
     // 2. ✅ 核心替换：使用新 store 的 setCurrentSessionUuid 方法
-    sessionStore.setCurrentSessionUuid(sessionUuid);
+    baseSessionStore.setCurrentSessionUuid(sessionUuid);
 
     // 3. ✅ 跳转到AiChat页面，路由参数传入生成的UUID（标准规范）
     await router.push({

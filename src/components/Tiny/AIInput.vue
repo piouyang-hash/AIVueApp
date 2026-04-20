@@ -46,10 +46,10 @@
 
       <!-- 底部功能栏：椭圆按钮 + 激活高亮 -->
       <div class="input-feature-bar">
-        <button class="feature-btn" :class="{ active: sessionStore.isThinkMode }" @click="sessionStore.toggleThinkMode">
+        <button class="feature-btn" :class="{ active: aiChatConfigStore.isThinkMode }" @click="aiChatConfigStore.toggleThinkMode">
           <span class="feature-text">思考</span>
         </button>
-        <button class="feature-btn" :class="{ active: sessionStore.isNetworkMode }" @click="sessionStore.toggleNetworkMode">
+        <button class="feature-btn" :class="{ active: aiChatConfigStore.isNetworkMode }" @click="aiChatConfigStore.toggleNetworkMode">
           <span class="feature-text">联网</span>
         </button>
         <button class="feature-btn">
@@ -62,39 +62,42 @@
 
 <script setup>
 import { computed } from 'vue'
-// 🔥 核心替换：废弃旧chatStore，使用新sessionStore
-import { useSessionStore } from '@/stores/sessionStore.js'
 import { useModalStore } from '@/stores/modalStore.js'
 import AttachSelectModal from "@/components/AiSession/AiChat/attach-select-modal.vue";
 import { useRoute, useRouter } from 'vue-router';
+import {useAiChatInputConfigStore} from "@/stores/AiChat/session-related/aiChatInputConfigStore.js";
+import {useAiChatConfigStore} from "@/stores/AiChat/aiChatConfigStore.js";
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
 
 const route = useRoute();
 const router = useRouter()
 // 🔥 初始化新仓库
-const sessionStore = useSessionStore()
+const aiChatInputConfigStore = useAiChatInputConfigStore()
+const aiChatConfigStore = useAiChatConfigStore()
+const baseSessionStore = useBaseSessionStore()
 const modalStore = useModalStore()
 
 // 定义事件
 const emit = defineEmits(['sendMessage'])
 
 // ==============================================
-// 🔥 输入框内容代理（适配新sessionStore）
+// 🔥 输入框内容代理（适配新aiChatInputConfigStore）
 // ==============================================
 const inputValueProxy = computed({
   get() {
-    return sessionStore.currentInputConfig.inputValue
+    return aiChatInputConfigStore.currentInputConfig.inputValue
   },
   set(newValue) {
     // 自动保存到当前会话的输入框配置
-    sessionStore.setCurrentSessionInput(newValue, sessionStore.currentInputConfig.inputHeight)
+    aiChatInputConfigStore.setCurrentSessionInput(newValue, aiChatInputConfigStore.currentInputConfig.inputHeight)
   }
 })
 
 // ==============================================
-// 🔥 输入框高度代理（适配新sessionStore）
+// 🔥 输入框高度代理（适配新aiChatInputConfigStore）
 // ==============================================
 const inputHeightProxy = computed(() => {
-  return sessionStore.currentInputConfig.inputHeight
+  return aiChatInputConfigStore.currentInputConfig.inputHeight
 })
 
 // 打开附件弹窗（不变）
@@ -110,13 +113,13 @@ const handleInputChange = (e) => {
   const target = e.target
 
   // 重置基础高度
-  target.style.height = `${sessionStore.BASE_HEIGHT}px`
+  target.style.height = `${aiChatInputConfigStore.BASE_HEIGHT}px`
   target.style.overflowY = 'hidden' // 默认隐藏
 
   // 空内容 → 恢复默认高度
   if (!inputValueProxy.value.trim()) {
-    sessionStore.setCurrentSessionInput('', sessionStore.BASE_HEIGHT)
-    target.style.height = `${sessionStore.BASE_HEIGHT}px`
+    aiChatInputConfigStore.setCurrentSessionInput('', aiChatInputConfigStore.BASE_HEIGHT)
+    target.style.height = `${aiChatInputConfigStore.BASE_HEIGHT}px`
     return
   }
 
@@ -130,7 +133,7 @@ const handleInputChange = (e) => {
   }
 
   // 保存到当前会话
-  sessionStore.setCurrentSessionInput(inputValueProxy.value, finalHeight)
+  aiChatInputConfigStore.setCurrentSessionInput(inputValueProxy.value, finalHeight)
   target.style.height = `${finalHeight}px`
 }
 
@@ -150,7 +153,7 @@ const handleSendMessage = (e) => {
   if (!content) return
 
   // 获取当前会话UUID（新store）
-  const storeSessionUuid = sessionStore.currentSessionUuid;
+  const storeSessionUuid = baseSessionStore.currentSessionUuid;
 
   // 路由同步校验
   if (route.name === 'AiChat' && route.params.sessionUuid !== storeSessionUuid) {
@@ -167,7 +170,7 @@ const handleSendMessage = (e) => {
   })
 
   // 重置当前会话输入框
-  sessionStore.resetCurrentSessionInput()
+  aiChatInputConfigStore.resetCurrentSessionInput()
 };
 
 </script>

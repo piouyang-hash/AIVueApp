@@ -3,7 +3,7 @@
   <transition name="expand">
     <div
         class="role-dropdown"
-        v-show="sessionStore.expandedRoleId === item.roleId"
+        v-show="aiRoleStore.expandedRoleId === item.roleId"
     >
       <div class="dropdown-empty" v-if="!getRoleSortedSessions(item.roleId).length">
         该角色暂无会话
@@ -48,12 +48,12 @@
             @touchcancel="handleLongPressCancel"
         >
           <span class="session-icon">💬</span>
-          <span class="session-text">{{ formatMarkdownText(sessionStore.sessionLastMessage[session.sessionUuid]) }}</span>
+          <span class="session-text">{{ formatMarkdownText(baseSessionStore.sessionLastMessage[session.sessionUuid]) }}</span>
           <div
               class="session-badge"
-              v-show="sessionStore.getSessionUnread(session.sessionUuid) > 0"
+              v-show="unReadMessageStore.getSessionUnread(session.sessionUuid) > 0"
           >
-            {{ sessionStore.getSessionUnread(session.sessionUuid) }}
+            {{ unReadMessageStore.getSessionUnread(session.sessionUuid) }}
           </div>
         </div>
       </div>
@@ -62,13 +62,17 @@
 </template>
 
 <script setup>
-import {useSessionStore} from '@/stores/sessionStore'
 import {sortChatList} from "@/utils/softSession.js";
 import {useRouter} from 'vue-router'
 import {ref} from "vue";
 import { useModalStore } from '@/stores/modalStore'
 import {ElMessage} from "element-plus";
-import {deleteChatSession, topChatSession, untopChatSession} from "@/services/ai_chat.session.service.js"; // 如需提示，按需导入
+import {deleteChatSession, topChatSession, untopChatSession} from "@/services/ai_chat.session.service.js";
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
+import {useChatDomainStore} from "@/stores/AiChat/session-related/combineMethod/ChatDomainStore.js";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
+import {useUnReadMessageStore} from "@/stores/AiChat/session-related/combineMethod/unReadMessageStore.js"; // 如需提示，按需导入
 
 // 接收父组件传递的 item
 const props = defineProps({
@@ -80,7 +84,11 @@ const props = defineProps({
 })
 
 const router = useRouter()
-const sessionStore = useSessionStore()
+const baseSessionStore = useBaseSessionStore()
+const aiMessageStore = useAiMessageStore()
+const aiRoleStore = useAiRoleStore()
+const chatDomainStore = useChatDomainStore()
+const unReadMessageStore = useUnReadMessageStore()
 const modalStore = useModalStore()
 
 // ======================
@@ -90,8 +98,8 @@ const handleClickSession = async (session) => {
   // 点击时关闭所有侧滑
   closeSessionSlide()
   console.log('点击了下拉会话：', session.chatTitle, 'sessionUuid：', session.sessionUuid);
-  sessionStore.setCurrentSessionUuid(session.sessionUuid);
-  await sessionStore.fetchCurrentSessionMessages();
+  baseSessionStore.setCurrentSessionUuid(session.sessionUuid);
+  await aiMessageStore.fetchCurrentSessionMessages();
   router.push({
     name: 'AiChat',
     params: {sessionUuid: session.sessionUuid}
@@ -99,7 +107,7 @@ const handleClickSession = async (session) => {
 };
 
 const getRoleSortedSessions = (roleId) => {
-  const sessionList = sessionStore.roleSessionMap[roleId] || []
+  const sessionList = chatDomainStore.roleSessionMap[roleId] || []
   return sortChatList(sessionList)
 }
 
@@ -238,7 +246,7 @@ const handleDeleteSession = (session) => {
           // 2. 前端乐观更新
           session.isDeleted = 1
           // 3. 调用store删除会话
-          sessionStore.deleteSessionByUuid(sessionUuid)
+          chatDomainStore.deleteSessionByUuid(sessionUuid)
 
           ElMessage.success('删除成功')
         } catch (err) {

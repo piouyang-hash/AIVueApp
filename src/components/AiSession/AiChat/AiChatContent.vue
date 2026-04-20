@@ -32,20 +32,27 @@ import MeridianVein from "@/components/AiSession/AiChat/meridian-vein.vue";
 import {SERVICE_URLS} from '@/api/constants/serviceUrls'
 import {useAiSoftwareConfigStore} from '@/stores/aiSoftwareConfig'
 // ========== 3. 仓库初始化 ==========
-import {useSessionStore} from '@/stores/sessionStore'
 import {storeToRefs} from "pinia";
-import CircleDownIcon from "../../Tiny/CircleDownIcon.vue";
-import MessageOptionMenu from "../MessageOptionMenu.vue";
-import ChatContentSplit from "./ChatContentSplit.vue";
-import ChatContentNormal from "./ChatContentNormal.vue";
 import { useModalStore } from '@/stores/modalStore.js'
 import ChoosedMessageOverlay from "./ChoosedMessageOverlay.vue";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import ChatContentNormal from "@/components/AiSession/AiChat/ChatContentNormal.vue";
+import CircleDownIcon from "@/components/Tiny/CircleDownIcon.vue";
+import ChatContentSplit from "@/components/AiSession/AiChat/ChatContentSplit.vue";
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
+import {useUnReadMessageStore} from "@/stores/AiChat/session-related/combineMethod/unReadMessageStore.js";
+import {useAiChatInputConfigStore} from "@/stores/AiChat/session-related/aiChatInputConfigStore.js";
 
 // 你已有的代码
 const modalStore = useModalStore()
 
-const sessionStore = useSessionStore()
-const {aiRoleList} = storeToRefs(sessionStore)
+const baseSessionStore = useBaseSessionStore()
+const aiRoleStore = useAiRoleStore()
+const aiMessageStore = useAiMessageStore()
+const unReadMessageStore = useUnReadMessageStore()
+const aiChatInputConfigStore = useAiChatInputConfigStore()
+const {aiRoleList} = storeToRefs(aiRoleStore)
 const configStore = useAiSoftwareConfigStore()
 
 const chatContentRef = ref(null)
@@ -75,9 +82,9 @@ const updateGlobalMarginStyle = (enabled) => {
 
 // 1. 你的原有动态底部高度计算（完全不用改！）
 const dynamicBottom = computed(() => {
-  const currentSessionUuid = sessionStore.currentSessionUuid
+  const currentSessionUuid = baseSessionStore.currentSessionUuid
   if (!currentSessionUuid) return 100
-  const inputConfig = sessionStore.sessionInputConfig || {}
+  const inputConfig = aiChatInputConfigStore.sessionInputConfig || {}
   // 计算结果
   return inputConfig[currentSessionUuid]?.inputHeight || 40
 })
@@ -112,13 +119,13 @@ const initMessageReadObserver = () => {
         // ==============================================
         // 🔥 核心：根据切分模式，分流调用不同方法
         // ==============================================
-        const currentSessionUuid = sessionStore.currentSessionUuid
+        const currentSessionUuid = baseSessionStore.currentSessionUuid
         if (configStore.isSplitMessageEnabled) {
           // ✅ 切分模式开启：需要 messageId + splitIndex，标记单个分片
           const index = Number(splitIndex)
           // 校验分片序号合法
           if (!isNaN(index) && index >= 0) {
-            sessionStore.markSingleSplitMessageAsRead(
+            unReadMessageStore.markSingleSplitMessageAsRead(
                 currentSessionUuid,
                 messageId,
                 index
@@ -126,7 +133,7 @@ const initMessageReadObserver = () => {
           }
         } else {
           // ✅ 切分模式关闭：原有逻辑，标记整条消息
-          sessionStore.markMessageAsRead(
+          unReadMessageStore.markMessageAsRead(
               currentSessionUuid,
               messageId
           )
@@ -182,7 +189,7 @@ onMounted(async () => {
   scrollToBottom()
 
   // 2. 🔥 清空【当前选中会话】的所有未读（非切分+切分全部清零）
-  sessionStore.clearSessionUnread(sessionStore.currentSessionUuid)
+  unReadMessageStore.clearSessionUnread(baseSessionStore.currentSessionUuid)
 
   // 3. 等待DOM渲染完成，启动消息监听
   await nextTick()
@@ -240,7 +247,7 @@ const emit = defineEmits([
 // ========== 4. 计算属性：当前会话消息 ==========
 // 🔥 直接复用 Store 里封装好的 getCurrentMergedMessages
 const currentMessages = computed(() => {
-  return sessionStore.getCurrentMergedMessages
+  return aiMessageStore.getCurrentMergedMessages
 })
 
 // ========== 5. 同步props会话UUID到Pinia仓库 ==========
@@ -248,7 +255,7 @@ watch(
     () => props.sessionUuid,
     (newUuid) => {
       if (newUuid) {
-        sessionStore.setCurrentSessionUuid(newUuid)
+        baseSessionStore.setCurrentSessionUuid(newUuid)
       }
     },
     {immediate: true}
@@ -265,7 +272,7 @@ const scrollToBottom = () => {
 
 // ========== 7. 监听用户消息变化 → 自动滚动 ==========
 watch(
-    () => sessionStore.waitingUserMessage,
+    () => aiMessageStore.waitingUserMessage,
     () => {
       // 用户消息新增 → 立即滚到底部
       scrollToBottom()

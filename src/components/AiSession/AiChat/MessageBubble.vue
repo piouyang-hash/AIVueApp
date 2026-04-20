@@ -88,13 +88,15 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
-import NewMarkdownViewer from '../../NewMarkdownViewer.vue'
 import { SERVICE_URLS } from '@/api/constants/serviceUrls'
 import { useUserStore } from '@/stores/user'
 import { useAiSoftwareConfigStore } from '@/stores/aiSoftwareConfig'
 import { useModalStore } from '@/stores/modalStore.js'
-import { useSessionStore } from '@/stores/sessionStore'
 import { useMessageStore } from '@/stores/messageStore'
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import NewMarkdownViewer from "@/components/NewMarkdownViewer.vue";
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
 
 // 1. Props 定义：🔥 已删除 index，只保留 item
 const props = defineProps({
@@ -107,8 +109,10 @@ const props = defineProps({
 // 2. 仓库
 const userStore = useUserStore()
 const { userInfo } = storeToRefs(userStore)
-const sessionStore = useSessionStore()
-const { aiRoleList } = storeToRefs(sessionStore)
+const baseSessionStore = useBaseSessionStore()
+const aiMessageStore = useAiMessageStore()
+const aiRoleStore = useAiRoleStore()
+const { aiRoleList } = storeToRefs(aiRoleStore)
 const modalStore = useModalStore()
 const messageStore = useMessageStore()
 const { activeMessageId } = storeToRefs(messageStore)
@@ -116,7 +120,7 @@ const { setActiveMessageId } = messageStore
 
 // 3. 从 Pinia 读取当前消息列表
 const currentMessages = computed(() => {
-  return sessionStore.getCurrentMergedMessages
+  return aiMessageStore.getCurrentMergedMessages
 })
 
 // 1.创建根dom引用
@@ -142,9 +146,9 @@ let touchTimer = null
 
 // 6. 方法
 const getAiAvatarUrl = () => {
-  const sessionUuid = sessionStore.currentSessionUuid
+  const sessionUuid = baseSessionStore.currentSessionUuid
   if (!sessionUuid) return ''
-  const currentSession = sessionStore.chatList.find(s => s.sessionUuid === sessionUuid)
+  const currentSession = baseSessionStore.chatList.find(s => s.sessionUuid === sessionUuid)
   if (!currentSession) return ''
   const roleId = currentSession.roleId
   if (!roleId) return ''

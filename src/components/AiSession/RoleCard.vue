@@ -43,13 +43,13 @@
 </template>
 
 <script setup>
-import { useSessionStore } from '@/stores/sessionStore'
 import { useRouter } from 'vue-router'
 import { ref } from "vue"
 import { SERVICE_URLS } from '@/api/constants/serviceUrls.js'
+import {useChatDomainStore} from "@/stores/AiChat/session-related/combineMethod/ChatDomainStore.js";
 
 const router = useRouter()
-const sessionStore = useSessionStore()
+const chatDomainStore = useChatDomainStore()
 
 // ==================== 你原有业务变量/方法（完全保留） ====================
 const formatTime = (timeStr) => {
@@ -73,7 +73,7 @@ const formatTime = (timeStr) => {
 };
 
 const hasActiveSession = (roleId) => {
-  const sessionList = sessionStore.roleSessionMap[roleId] || [];
+  const sessionList = chatDomainStore.roleSessionMap[roleId] || [];
   return sessionList.some(session => session.status === 'ACTIVE');
 };
 

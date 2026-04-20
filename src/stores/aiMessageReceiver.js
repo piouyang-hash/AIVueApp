@@ -1,116 +1,84 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import WebSocketClient from '@/utils/websocketUtil'
-import {useSessionStore} from "@/stores/sessionStore.js";
-import {parseChatChunk} from "@/services/ai_chat.service.js";
+// 仅导入：全局WS连接store + 消息解析工具
+import { useWebSocketConnectionStore } from "@/stores/websocket-connection"
+import { parseChatChunk } from "@/services/ai_chat.service.js"
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
+import {useAiMessageTaskStore} from "@/stores/AiChat/session-related/aiMessageTaskStore.js";
 
+/**
+ * AI 流式消息接收器（纯消息接收+解析+打印）
+ * 🔥 完全复用全局WebSocket单例连接，无独立连接、无业务逻辑
+ */
+export const useAiMessageReceiverStore = defineStore('aiMessageReceiver', {
+    actions: {
+        /**
+         * 初始化AI消息接收服务（登录后调用一次）
+         * 用法：const aiMsgStore = useAiMessageReceiverStore(); aiMsgStore.initAiMessageReceiver()
+         */
+        initAiMessageReceiver() {
+            // 获取全局WebSocket连接实例
+            const wsConnStore = useWebSocketConnectionStore()
 
-// 全局单例：AI 流式消息接收器（只负责接收回复，和心跳分离）
-export const useAiMessageReceiverStore = defineStore('aiMessageReceiver', () => {
-    const sessionStore = useSessionStore()
+            // 订阅全局WebSocket消息（所有消息统一分发到这里）
+            wsConnStore.subscribeMessage((rawData) => {
+                this._handleWsMessage(rawData)
+            })
 
-    // 全局唯一 WebSocket 实例
-    const wsClient = ref(null)
-    const currentTask = ref({
-        sessionUuid: null,
-        taskId: null
-    })
-    const isConnected = computed(() => wsClient.value?.connected || false)
+            console.log('✅ 业务：AI流式消息接收服务初始化完成（复用全局WS连接）')
+        },
 
-    // 核心：全局建立连接（适配后端 sessionUuid:taskId 规则）
-    //  ====================== 顶部新增：管理多个WebSocket连接 ======================
-    // 存储所有连接：key = taskId，value = WebSocket实例
-    const wsClientMap = ref({})
-    // 存储当前会话的所有任务
-    const currentTaskList = ref([])
+        /**
+         * 私有：处理WS原始消息（仅解析AI_PUSH类型消息 + 打印日志）
+         */
+        _handleWsMessage(rawData) {
 
-    //  ====================== 改造后的connect函数 ======================
-    const connect = (sessionUuid, taskId) => {
-        const WS_BASE_URL = 'ws://localhost:8086/ai/chat/stream'
+            const aiMessageStore = useAiMessageStore()
+            const aiMessageTaskStore = useAiMessageTaskStore()
 
-        // 1. 参数校验
-        if (!sessionUuid || !taskId) {
-            console.error("WebSocket连接失败：sessionUuid或taskId为空")
-            return
+            // 1. 服务器返回的是 JSON 字符串 → 先解析（加容错，防止报错）
+            let data = null;
+            try {
+                data = JSON.parse(rawData);
+            } catch (e) {
+                // 非JSON消息（比如内部bind_ready信号），直接忽略/不处理
+                return;
+            }
+
+            // 2. 只处理AI推送类型消息
+            if (data.msgType === 'AI_PUSH') {
+                // 取出AI流式消息内容（后端直接传递的chunk）
+                const aiChunk = data.message;
+
+                try {
+                    parseChatChunk(
+                        aiChunk,
+                        // 🔥 首帧：sessionUuid在前，meta元数据（原业务逻辑1:1还原）
+                        (sessionUuid, meta) => {
+                            // 直接使用回调的sessionUuid，替代原targetSessionUuid
+                            aiMessageStore.createAiReplyMessage(sessionUuid, meta, meta.taskId)
+                            aiMessageStore.fillTempMessage(sessionUuid, meta, meta.taskId)
+                        },
+                        // 🔥 文本帧：sessionUuid在前，content对象（原业务逻辑1:1还原）
+                        (sessionUuid, content) => {
+                            // 从content中获取taskId，更新消息
+                            aiMessageStore.updateAiReplyMessage(sessionUuid, content.aiReplyContent, content.taskId)
+                        },
+                        // 🔥 结束帧：sessionUuid在前，taskId在后（删除所有断连逻辑，仅保留业务）
+                        (sessionUuid, taskId) => {
+                            aiMessageTaskStore.updateSessionTaskStatus(sessionUuid, taskId, 'finished')
+                            aiMessageStore.clearStreamingMessageByUuid(sessionUuid, taskId)
+                            console.log('🔚 任务完成：', taskId)
+                            // ✅ 长连接：删除所有断开连接/清理连接池的代码
+                        },
+                        // 解析失败（不变）
+                        (err) => console.error('解析失败：', err)
+                    )
+                } catch (e) {
+                    console.error('❌ 处理AI消息异常：', e)
+                }
+            }
         }
 
-        // 2. 🔥 关键：如果该taskId已经有连接，直接复用（避免重复连接）
-        if (wsClientMap.value[taskId]) {
-            console.log('✅ 任务已存在连接：', taskId)
-            return
-        }
-
-        // 3. 🔥 关键：不关闭旧连接！保留所有任务的连接（保证不丢消息）
-        // 移除了 disconnect() 逻辑，旧连接持续接收消息
-
-        let aiMessageId = null
-        const finalSessionUuid = sessionUuid
-        const finalTaskId = taskId
-
-        // 4. 创建新的WebSocket（每个taskId独立）
-        const newWs = new WebSocketClient({
-            reconnectInterval: 3000,
-            maxReconnectTimes: 10
-        })
-
-        // 5. 绑定唯一的 taskId 通道（匹配后端）
-        const wsUrl = `${WS_BASE_URL}?sessionUuid=${sessionUuid}&taskId=${taskId}`
-        newWs.setWsUrl(wsUrl)
-
-        // 6. 存储连接和任务
-        wsClientMap.value[taskId] = newWs
-        currentTaskList.value.push({ sessionUuid, taskId })
-
-        // 7. 独立的消息回调（每个taskId自己处理自己的消息）
-        newWs.on({
-            open: () => {
-                console.log('✅ 连接成功：', sessionUuid + ":" + taskId)
-            },
-            message: (rawData) => {
-                parseChatChunk(
-                    rawData,
-                    (meta) => {
-                        const targetSessionUuid = meta.sessionUuid || finalSessionUuid
-                        aiMessageId = sessionStore.createAiReplyMessage(targetSessionUuid, meta, finalTaskId)
-                        sessionStore.fillTempMessage(targetSessionUuid, meta)
-                    },
-                    (text) => {
-                        if (!aiMessageId) return
-                        sessionStore.updateAiReplyMessage(finalSessionUuid, aiMessageId, text, finalTaskId)
-                    },
-                    () => {
-                        sessionStore.updateSessionTaskStatus(finalSessionUuid, finalTaskId, 'finished')
-                        sessionStore.clearStreamingMessageByUuid(finalSessionUuid, finalTaskId)
-                        console.log('🔚 任务完成：', finalTaskId)
-                        // 任务完成后，清理连接（释放资源）
-                        newWs.close()
-                        delete wsClientMap.value[finalTaskId]
-                        currentTaskList.value = currentTaskList.value.filter(t => t.taskId !== finalTaskId)
-                    },
-                    (err) => console.error('解析失败：', err)
-                )
-            },
-            close: () => console.log("🔌 连接关闭：", taskId),
-            error: (err) => console.error("❌ 连接错误：", taskId, err)
-        })
-
-        newWs.connect()
-    }
-
-    // 安全断开连接
-    const disconnect = () => {
-        if (wsClient.value) {
-            wsClient.value.close()
-            wsClient.value = null
-            currentTask.value = { sessionUuid: null, taskId: null }
-        }
-    }
-
-    return {
-        currentTask,
-        isConnected,
-        connect,
-        disconnect
     }
 }, {
     persist: false
