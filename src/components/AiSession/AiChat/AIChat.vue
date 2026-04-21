@@ -112,7 +112,7 @@ const handleAIInputSendMessage = async ({ content, sessionUuid }) => {
     // 1. 获取任务ID（后端返回：sessionUuid:taskId:userMessageId）
     const uniqueKey = await testAsyncStream(content, sessionUuid)
     // 拆分出三个参数：会话ID、任务ID、用户消息ID
-    const [taskId, userMessageId] = uniqueKey.split(':')
+    const [resSessionUuid, taskId, userMessageId] = uniqueKey.split(':')
 
     // 核心：将 messageId 传给创建等待消息的方法
     aiMessageStore.createUserWaitingMessage(sessionUuid, content, taskId, userMessageId)

@@ -14,10 +14,11 @@
 import {computed} from 'vue'
 import {useAiSoftwareConfigStore} from '@/stores/aiSoftwareConfig'
 // ========== 3. 仓库初始化 ==========
-import {useSessionStore} from '@/stores/sessionStore'
 import SplitMessageBubble from "./SplitMessageBubble.vue";
+import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
 
-const sessionStore = useSessionStore()
+
+const aiMessageStore = useAiMessageStore();
 
 const configStore = useAiSoftwareConfigStore()
 
@@ -31,7 +32,7 @@ const emit = defineEmits([
 // ========== 4. 计算属性：当前会话消息 ==========
 // 🔥 直接复用 Store 里封装好的 getCurrentMergedMessages
 const currentMessages = computed(() => {
-  return sessionStore.getCurrentMergedMessages
+  return aiMessageStore.getCurrentMergedMessages
 })
 
 // ✅ 🔥 新增：切分模式下的【全局扁平化时间排序】核心

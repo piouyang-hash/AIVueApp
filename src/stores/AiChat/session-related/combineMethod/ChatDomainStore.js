@@ -47,6 +47,7 @@ export const useChatDomainStore = defineStore('chatDomain', () => {
 
         // 🎯 1. 创建占位会话（原有逻辑不变）
         const placeholderSession = {
+            chatTitle: '新对话',
             sessionUuid: sessionUuid,
             roleId: aiRoleStore.currentRoleId
         }

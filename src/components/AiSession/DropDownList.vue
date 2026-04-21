@@ -100,7 +100,7 @@ const handleClickSession = async (session) => {
   console.log('点击了下拉会话：', session.chatTitle, 'sessionUuid：', session.sessionUuid);
   baseSessionStore.setCurrentSessionUuid(session.sessionUuid);
   await aiMessageStore.fetchCurrentSessionMessages();
-  router.push({
+  await router.push({
     name: 'AiChat',
     params: {sessionUuid: session.sessionUuid}
   });

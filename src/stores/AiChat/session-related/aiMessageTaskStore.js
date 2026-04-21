@@ -26,33 +26,45 @@ export const useAiMessageTaskStore = defineStore('aiMessageTask', () => {
      * 新任务到来 → 先取消当前会话所有进行中任务 → 再添加新任务
      */
     const addSessionTask = (sessionUuid, taskId) => {
-        if (!sessionUuid || !taskId) return
+        console.log('=== 添加会话任务开始 ===');
+        console.log('传入会话ID:', sessionUuid);
+        console.log('传入任务ID:', taskId);
 
-        // 🔥 关键：添加新任务前，先取消该会话所有【进行中】的旧任务（匹配后端打断）
-        // 这个会导致接收不到后端的后续消息（因为有回写逻辑）
-        // 注释掉，就可以了，但是不清楚有没有逻辑bug，现在没有测试出来
-        // cancelAllPendingTasks(sessionUuid)
-
-        // 初始化会话任务数组
-        if (!sessionTaskMap[sessionUuid]) {
-            sessionTaskMap[sessionUuid] = []
+        // 校验参数
+        if (!sessionUuid || !taskId) {
+            console.log('❌ 参数缺失，会话ID或任务ID为空，终止添加');
+            console.log('=== 添加会话任务结束 ===\n');
+            return;
         }
 
+        // 初始化会话任务数组
+        if (!sessionTaskMap.value[sessionUuid]) {
+            console.log('ℹ️ 该会话暂无任务列表，初始化空数组');
+            sessionTaskMap.value[sessionUuid] = [];
+        }
+
+        // 打印当前会话原有任务列表
+        console.log('添加前 - 当前会话任务列表:', sessionTaskMap.value[sessionUuid]);
+
         // 追加新任务（状态：进行中）
-        sessionTaskMap[sessionUuid].unshift({
+        const newTask = {
             taskId,
             status: 'pending',
             createTime: Date.now()
-        })
-    }
+        };
+        sessionTaskMap.value[sessionUuid].unshift(newTask);
 
+        console.log('✅ 新任务添加成功:', newTask);
+        console.log('添加后 - 当前会话任务列表:', sessionTaskMap.value[sessionUuid]);
+        console.log('=== 添加会话任务结束 ===\n');
+    }
     /**
      * 3. 获取【当前会话】的 进行中任务（重回聊天页 → 重连WebSocket用）
      * @return { taskId: string | null, status: string | null }
      */
     const getCurrentPendingTask = computed(() => {
         const sid = baseSession.currentSessionUuid
-        const taskList = sessionTaskMap[sid] || []
+        const taskList = sessionTaskMap.value[sid] || []
         // 找到第一个未完成的任务
         const pendingTask = taskList.find(item => item.status === 'pending')
         return pendingTask || { taskId: null, status: null }
@@ -62,16 +74,37 @@ export const useAiMessageTaskStore = defineStore('aiMessageTask', () => {
      * 2. 更新任务状态（AI流式结束时调用）
      * @param {string} sessionUuid - 会话ID
      * @param {string} taskId - 任务ID
-     * @param {'pending' | 'finished'} status - 新状态
+     * @param {'pending' | 'finished' | 'canceled'} status - 新状态
      */
     const updateSessionTaskStatus = (sessionUuid, taskId, status) => {
-        const taskList = sessionTaskMap[sessionUuid]
-        if (!taskList) return
+        // 🔥 调试打印1：输出函数调用的所有入参
+        console.log('=== 更新任务状态开始 ===');
+        console.log('会话ID(sessionUuid):', sessionUuid);
+        console.log('任务ID(taskId):', taskId);
+        console.log('目标状态(status):', status);
 
-        const task = taskList.find(item => item.taskId === taskId)
-        if (task) {
-            task.status = status
+        const taskList = sessionTaskMap.value[sessionUuid];
+        // 🔥 调试打印2：输出当前会话的任务列表
+        console.log('当前会话的任务列表:', taskList);
+
+        if (!taskList) {
+            console.log('❌ 未找到该会话的任务列表，会话ID：', sessionUuid);
+            return;
         }
+
+        const task = taskList.find(item => item.taskId === taskId);
+        // 🔥 调试打印3：输出找到的任务
+        console.log('查找到的任务:', task);
+
+        if (task) {
+            console.log('✅ 找到任务，原状态：', task.status, '，即将更新为：', status);
+            task.status = status;
+            console.log('✅ 任务状态更新完成！最终任务：', task);
+        } else {
+            console.log('❌ 未找到对应任务，任务ID：', taskId);
+        }
+
+        console.log('=== 更新任务状态结束 ===\n');
     }
 
     /**
@@ -85,8 +118,8 @@ export const useAiMessageTaskStore = defineStore('aiMessageTask', () => {
      * 4. 清空指定会话的所有任务
      */
     const clearSessionTasks = (sessionUuid) => {
-        if (sessionTaskMap[sessionUuid]) {
-            sessionTaskMap[sessionUuid] = []
+        if (sessionTaskMap.value[sessionUuid]) {
+            sessionTaskMap.value[sessionUuid] = []
         }
     }
 
@@ -99,14 +132,11 @@ export const useAiMessageTaskStore = defineStore('aiMessageTask', () => {
 
     // 暴露所有数据和方法
     return {
-        // ======================================
-        // 🔥 10. AI任务管理（流式/任务）
-        // ======================================
-        sessionTaskMap,          // 会话任务映射
-        addSessionTask,          // 添加会话任务
-        getCurrentPendingTask,   // 获取当前待处理任务
-        updateSessionTaskStatus, // 更新任务状态
-        clearSessionTasks,       // 清空会话任务
-        clearAllSessionTasks     // 清空所有会话任务
+        sessionTaskMap,
+        addSessionTask,
+        getCurrentPendingTask,
+        updateSessionTaskStatus,
+        clearSessionTasks,
+        clearAllSessionTasks
     }
 })

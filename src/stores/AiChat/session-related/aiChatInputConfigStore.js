@@ -15,11 +15,11 @@ export const useAiChatInputConfigStore = defineStore('aiChatInputConfig', () => 
 
     // 设置当前会话输入框
     const setCurrentSessionInput = (value = '', height = BASE_HEIGHT) => {
-        // 3. ✅ 直接从会话Store里取UUID！
         const uuid = baseSessionStore.currentSessionUuid
         if (!uuid) return
 
-        sessionInputConfig[uuid] = {
+        // ✅ 修复：ref 变量必须加 .value
+        sessionInputConfig.value[uuid] = {
             inputValue: value,
             inputHeight: height
         }
@@ -30,7 +30,8 @@ export const useAiChatInputConfigStore = defineStore('aiChatInputConfig', () => 
         const uuid = baseSessionStore.currentSessionUuid
         if (!uuid) return
 
-        sessionInputConfig[uuid] = {
+        // ✅ 修复：ref 变量必须加 .value
+        sessionInputConfig.value[uuid] = {
             inputValue: '',
             inputHeight: BASE_HEIGHT
         }
@@ -40,7 +41,8 @@ export const useAiChatInputConfigStore = defineStore('aiChatInputConfig', () => 
     // 当前会话输入框配置（计算属性）
     const currentInputConfig = computed(() => {
         const uuid = baseSessionStore.currentSessionUuid
-        return sessionInputConfig[uuid] || {
+        // ✅ 修复：ref 变量必须加 .value
+        return sessionInputConfig.value[uuid] || {
             inputValue: '',
             inputHeight: BASE_HEIGHT
         }

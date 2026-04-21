@@ -24,15 +24,19 @@
 <script setup>
 import { computed } from 'vue'
 // 导入Store
-import { useSessionStore } from '@/stores/sessionStore'
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useUnReadMessageStore} from "@/stores/AiChat/session-related/combineMethod/unReadMessageStore.js";
+import {useAiChatInputConfigStore} from "@/stores/AiChat/session-related/aiChatInputConfigStore.js";
 
-const sessionStore = useSessionStore()
+const baseSessionStore = useBaseSessionStore()
+const unReadMessageStore = useUnReadMessageStore()
+const aiChatInputConfigStore = useAiChatInputConfigStore()
 
 // ============== 1. 未读数计算 ==============
 const currentUnreadCount = computed(() => {
-  const currentSessionUuid = sessionStore.currentSessionUuid
+  const currentSessionUuid = baseSessionStore.currentSessionUuid
   if (!currentSessionUuid) return 0
-  return sessionStore.getSessionUnread(currentSessionUuid)
+  return unReadMessageStore.getSessionUnread(currentSessionUuid)
 })
 
 // ============== 2. 有未读消息才显示 ==============
@@ -43,12 +47,12 @@ const visible = computed(() => {
 // ============== 3. 🔥 动态底部高度（核心修正版） ==============
 // 总距离 = 输入框高度(默认40) + 底部栏固定60px
 const dynamicBottom = computed(() => {
-  const currentSessionUuid = sessionStore.currentSessionUuid
+  const currentSessionUuid = baseSessionStore.currentSessionUuid
   // 无会话：默认输入框40 + 底部栏60 = 100px
   if (!currentSessionUuid) return 100
 
   // 从 sessionStore 获取输入框配置
-  const inputConfig = sessionStore.sessionInputConfig || {}
+  const inputConfig = aiChatInputConfigStore.sessionInputConfig || {}
   // 获取输入框高度，不存在则用 40
   const inputHeight = inputConfig[currentSessionUuid]?.inputHeight || 40
 

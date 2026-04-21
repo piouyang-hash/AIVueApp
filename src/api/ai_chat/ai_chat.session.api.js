@@ -92,16 +92,3 @@ export async function recoverChatSessionApi(sessionUuid) {
         method: 'POST'
     })
 }
-
-/**
- * 查询指定会话下的所有聊天消息
- * 对应后端：GET /ai/chat/session/chat/messages/{sessionUuid}
- * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式，如：550e8400-e29b-41d4-a716-446655440000）
- * @returns {Promise<Object>} - 响应：{success: boolean, data: Array<AiChatMessage>, msg: string}
- */
-export async function listChatMessagesApi(sessionUuid) {
-    return withAuth(aiChatRequest, {
-        url: `/ai/chat/session/chat/messages/${sessionUuid}`,
-        method: 'GET'
-    })
-}

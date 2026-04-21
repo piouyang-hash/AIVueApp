@@ -17,28 +17,24 @@ export const useBaseSessionStore = defineStore('baseSession', () => {
     // 原有：获取会话列表
     // 🔥 修改后：有数据就不请求接口（会话列表）
     const fetchUserSessions = async () => {
-        // ✅【核心新增】开头判断：已有数据，直接return，不发请求
-        if (chatList && chatList.length > 0) {
-            console.log('会话列表已有数据，跳过接口请求');
+        // ✅ 修复1：ref 数组判断必须加 .value
+        if (chatList.value && chatList.value.length > 0) {
             return;
         }
 
-        console.log('开始调用getUserNormalSessions接口...')
         const realSessionData = await getUserNormalSessions()
-        console.log('从接口获取的正常会话数据：', realSessionData)
         chatList.value = realSessionData || []
 
-        // 原有逻辑：判断是否已经填充过，已填充则直接跳过
-        if (Object.keys(sessionLastMessage).length > 0) {
-            console.log('sessionLastMessage 已初始化，跳过填充');
+        // 已填充过最后消息，直接跳过
+        if (Object.keys(sessionLastMessage.value).length > 0) {
             return;
         }
 
-        // 未填充过，才执行首次赋值
+        // 初始化并赋值最后消息
         sessionLastMessage.value = {}
         if (realSessionData?.length) {
             realSessionData.forEach(item => {
-                sessionLastMessage[item.sessionUuid] = item.lastMessageContent
+                sessionLastMessage.value[item.sessionUuid] = item.lastMessageContent
             })
         }
     }
@@ -55,9 +51,8 @@ export const useBaseSessionStore = defineStore('baseSession', () => {
             return;
         }
 
-        // 核心：直接修改响应式对象（自动触发视图更新）
-        // 即使会话UUID不存在，也会自动新增键值对，兼容新会话
-        sessionLastMessage[sessionUuid] = content;
+        // ✅ 修复2：ref 对象赋值必须加 .value
+        sessionLastMessage.value[sessionUuid] = content;
     };
 
     // 原有：设置当前会话UUID
@@ -68,30 +63,11 @@ export const useBaseSessionStore = defineStore('baseSession', () => {
 
     // 暴露所有数据和方法
     return {
-        // ======================================
-        // 🔥 1. 核心列表数据（页面主数据）
-        // ======================================
-        chatList,                // 会话列表
-
-        // ======================================
-        // 🔥 2. 当前选中状态（页面激活项）
-        // ======================================
-        currentSessionUuid,      // 当前会话ID
-
-        // ======================================
-        // 🔥 3. 消息数据存储（所有聊天消息）
-        // =====================================
-        sessionLastMessage,      // 会话最后一条消息
-
-        // ======================================
-        // 🔥 7. 数据获取（接口请求）
-        // ======================================
-        fetchUserSessions,       // 获取用户会话列表
-
-        // ======================================
-        // 🔥 8. 会话核心操作
-        // ======================================
-        setCurrentSessionUuid,   // 设置当前会话ID
-        updateSessionLastMessage,// 更新会话最后一条消息
+        chatList,
+        currentSessionUuid,
+        sessionLastMessage,
+        fetchUserSessions,
+        setCurrentSessionUuid,
+        updateSessionLastMessage,
     }
 })

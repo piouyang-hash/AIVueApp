@@ -1,6 +1,6 @@
 <template>
   <!-- 对话列表 -->
-  <div class="chat-list">
+  <div class="chat-list" @scroll="handleChatScroll">
     <!-- 修改：使用排序后的 sortedChatList -->
     <div
         v-for="item in sortedChatList"
@@ -127,6 +127,22 @@ const formatMarkdownText = (text) => {
   // 5. 最后清理首尾空白
   return formatted.trim();
 };
+
+let scrollTimer = null;
+
+const handleChatScroll = (e) => {
+  // 滚动时添加类名 = 显示滚动条
+  const listDom = e.target
+  listDom.classList.add('scroll-show')
+
+  // 清空上一次定时器
+  clearTimeout(scrollTimer)
+
+  // 停止滚动 300ms 后移除类名 = 隐藏滚动条
+  scrollTimer = setTimeout(() => {
+    listDom.classList.remove('scroll-show')
+  }, 300)
+}
 </script>
 
 <style scoped>
@@ -136,9 +152,41 @@ const formatMarkdownText = (text) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: calc(100vh - 170px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  padding-right: 4px;
+  box-sizing: border-box;
 }
 
-/* 单条对话项 - 原有样式不动 */
+/* 滚动条容器 */
+.chat-list::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+/* 默认：滚动条透明隐藏 + 过渡动画 */
+.chat-list::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transform: translateX(2px);
+  /* 淡入淡出过渡 */
+  transition: background 0.3s ease;
+}
+
+/* 滚动激活时：滚动条显示 */
+.chat-list.scroll-show::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.3);
+}
+.chat-list.scroll-show::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.5);
+}
+
+/* 以下所有样式完全保留，无任何修改 */
 .chat-item {
   display: flex;
   align-items: center;
@@ -151,29 +199,20 @@ const formatMarkdownText = (text) => {
   position: relative;
   pointer-events: auto;
 }
-/* 所有子元素禁止拦截点击，穿透到父级（不动！这是最优写法） */
 .chat-item > * {
   pointer-events: none;
 }
-
-/* 右键菜单激活时：缩小样式 + 禁止点击（CSS控制，自动恢复） */
 .chat-item--menu-active {
   transition: all 0.2s ease !important;
   transform: scale(0.9) !important;
   z-index: 10000 !important;
   position: relative;
-  /* 👇 新增这一行：完全禁止鼠标点击/悬停等所有交互 */
   pointer-events: none !important;
 }
-
-/* ====================== 🔥 置顶会话样式（加深背景） ====================== */
 .chat-item--top {
-  /* 置顶：背景色加深 + 左边框高亮标记 */
   background-color: var(--card-bg);
   border-left: 3px solid var(--primary-color);
 }
-
-/* 右上角绿色小球样式 */
 .chat-badge {
   position: absolute;
   top: 12px;
@@ -183,17 +222,13 @@ const formatMarkdownText = (text) => {
   border-radius: 50%;
   background-color: #00c853;
   z-index: 1;
-  pointer-events: none; /* 额外声明：小球也不拦截事件（冗余但保险） */
+  pointer-events: none;
 }
-
-/* 列表项 hover 效果 */
 .chat-item:hover {
   background-color: var(--gray-50);
   border-color: var(--gray-200);
   box-shadow: 0 2px 8px var(--shadow-color);
 }
-
-/* 左侧圆形头像 */
 .avatar {
   width: 48px;
   height: 48px;
@@ -207,14 +242,10 @@ const formatMarkdownText = (text) => {
   margin-right: 16px;
   flex-shrink: 0;
 }
-
-/* 中间文字区域（标题+描述） */
 .chat-info {
   flex: 1;
   overflow: hidden;
 }
-
-/* 对话标题 */
 .chat-title {
   margin: 0;
   font-size: 16px;
@@ -224,8 +255,6 @@ const formatMarkdownText = (text) => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* 对话描述（第一句话） */
 .chat-desc {
   margin: 4px 0 0 0;
   font-size: 14px;
@@ -235,8 +264,6 @@ const formatMarkdownText = (text) => {
   text-overflow: ellipsis;
   line-height: 1.4;
 }
-
-/* 右侧时间 */
 .chat-time {
   font-size: 12px;
   color: var(--text-tertiary);

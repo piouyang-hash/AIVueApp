@@ -77,12 +77,3 @@ export async function deleteChatSession(sessionUuid) {
 export async function recoverChatSession(sessionUuid) {
     return handleApiResponse(recoverChatSessionApi, sessionUuid);
 }
-
-/**
- * 查询指定会话下的所有聊天消息（封装层，统一处理接口响应）
- * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）
- * @returns {Array<AiChatMessage>} - 成功返回消息列表，失败抛出错误
- */
-export async function getChatMessages(sessionUuid) {
-    return handleApiResponse(listChatMessagesApi, sessionUuid);
-}
