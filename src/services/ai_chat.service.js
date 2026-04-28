@@ -145,39 +145,37 @@ export function userSlidingWindowStreamChat(msg, sessionUuid, onData, onEnd, onE
 }
 
 /**
- * 【配套专属解析器】AI流式对话分片解析（适配ChatStreamMetaDTO）
- * 后端首帧content = ChatStreamMetaDTO对象，后续帧content = 文本字符串
- * 自动识别、自动解析，业务侧直接拿结构化数据
- * @param {Object} chunk - 后端返回的原始ChatChunkDTO
- * @param {Function} onMeta - 首帧回调：返回完整ChatStreamMetaDTO（核心！）
- * @param {Function} onText - 文本帧回调：返回AI纯文本片段
- * @param {Function} [onFinish] - 流结束回调
- * @param {Function} [onParseError] - 解析异常回调
- * @example
- * parseChatChunk(chunk, (meta) => {
- *   // 直接拿到所有元数字段！
- *   console.log(meta.sessionUuid, meta.userMessageId, meta.aiMessageId, meta.userMessage)
- * }, (text) => {
- *   // 直接拿到AI回复文本
- *   console.log(text)
- * })
+ * 解析AI流式分片数据
+ * @param {Object} chunk - 后端返回的ChatChunkDTO
+ * @param {Function} onMeta - 首帧元数据回调
+ * @param {Function} onText - 普通文本回调
+ * @param {Function} onFinish - 结束帧回调
+ * @param {Function} onError - 🔥 新增：后端业务错误回调（isError=true）
+ * @param {Function} onParseError - 解析异常回调（代码报错）
  */
-export function parseChatChunk(chunk, onMeta, onText, onFinish, onParseError) {
+export function parseChatChunk(chunk, onMeta, onText, onFinish, onError, onParseError) {
     try {
         if (!chunk) {
             throw new Error('流式分片数据为空');
         }
 
-        // 提取核心参数
-        const { sessionUuid, content, isFirst, isEnd } = chunk;
+        // 提取核心参数（新增 isError）
+        const { sessionUuid, content, isFirst, isEnd, isError } = chunk;
 
-        // 1. 结束帧：sessionUuid 在前，taskId 在后
+        // ===================== 🔥 最高优先级：优先处理后端错误帧 =====================
+        if (isError === true) {
+            onError && typeof onError === 'function' && onError(sessionUuid, content);
+            return;
+        }
+        // ========================================================================
+
+        // 1. 结束帧
         if (isEnd === true) {
             onFinish && typeof onFinish === 'function' && onFinish(sessionUuid, content);
             return;
         }
 
-        // 2. 首帧：sessionUuid 在前，meta 元数据在后
+        // 2. 首帧
         if (isFirst === true) {
             if (!content || typeof content !== 'object' || Array.isArray(content)) {
                 throw new Error('首帧格式错误：非ChatStreamMetaDTO对象');
@@ -186,12 +184,13 @@ export function parseChatChunk(chunk, onMeta, onText, onFinish, onParseError) {
             return;
         }
 
-        // 3. 普通文本帧：sessionUuid 在前，content 对象在后
+        // 3. 普通文本帧
         if (content != null && typeof onText === 'function') {
             onText(sessionUuid, content);
         }
 
     } catch (err) {
+        // 解析层异常（代码错误、数据格式错误）
         onParseError && typeof onParseError === 'function'
             ? onParseError(err)
             : console.warn('流式解析失败：', err);
