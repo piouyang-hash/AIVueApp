@@ -66,9 +66,31 @@ export const useAiMessageReceiverStore = defineStore('aiMessageReceiver', {
                         // 🔥 结束帧：sessionUuid在前，taskId在后（删除所有断连逻辑，仅保留业务）
                         (sessionUuid, taskId) => {
                             aiMessageTaskStore.updateSessionTaskStatus(sessionUuid, taskId, 'finished')
+                            // 🔥 在这里调用：清理用户等待消息（写入会话 + 去重）
+                            aiMessageStore.clearWaitingUserMessage(sessionUuid, taskId)
                             aiMessageStore.clearStreamingMessageByUuid(sessionUuid, taskId)
                             console.log('🔚 任务完成：', taskId)
                             // ✅ 长连接：删除所有断开连接/清理连接池的代码
+                        },
+                        // 🔥 【新增】AI业务错误处理（从errorContent获取taskId，修改状态+双回写）
+                        (sessionUuid, errorContent) => {
+                            // 从错误内容中获取 taskId（核心修改）
+                            const taskId = errorContent?.taskId;
+                            // 防护：没有taskId则不执行后续逻辑
+                            if (!taskId) {
+                                console.error('❌ AI错误无taskId，终止处理', errorContent);
+                                return;
+                            }
+
+                            // 1. 任务状态修改为 error
+                            aiMessageTaskStore.updateSessionTaskStatus(sessionUuid, taskId, 'error');
+                            // 2. 回写用户等待消息
+                            aiMessageStore.clearWaitingUserMessage(sessionUuid, taskId);
+                            // 3. 回写AI错误消息（错误帧正常回写）
+                            aiMessageStore.clearStreamingMessageByUuid(sessionUuid, taskId);
+
+                            // 打印完整错误日志
+                            console.error('❌ AI 生成错误：', errorContent, '｜ 会话UUID：', sessionUuid, '｜ 任务ID：', taskId);
                         },
                         // 解析失败（不变）
                         (err) => console.error('解析失败：', err)

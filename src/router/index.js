@@ -5,7 +5,12 @@ import {usePageStore} from "@/stores/PageStore.js";
 // 懒加载组件变量定义（统一格式：const 组件名 = () => import('组件路径')）
 const RechargeAgreementPage = () => import('@/components/MyPage/MyHomePageComponents/MyWalletComponents/RechargeAgreementPage.vue');
 const PaymentPage = () => import('@/components/MyPage/MyHomePageComponents/MyWalletComponents/PaymentPage.vue');
+const OrderPage = () => import('@/components/MyPage/MyHomePageComponents/MyWalletComponents/OrderPage.vue');
+
 const MyWallet = () => import('@/components/MyPage/MyHomePageComponents/MyWalletComponents/MyWallet.vue');
+const OrderDetailPage = () => import('@/components/MyPage/MyHomePageComponents/MyWalletComponents/OrderDetailPage.vue');
+const OrderQueryPage = () => import('@/components/MyPage/MyHomePageComponents/MyWalletComponents/OrderQueryPage.vue');
+
 const ChatPage = () => import('@/components/MyPage/MyHomePageComponents/MyMessagePageComponents/ChatPage.vue');
 const MyMessage = () => import('@/components/MyPage/MyHomePageComponents/MyMessagePageComponents/MyMessage.vue');
 const MyHomePageMain = () => import('@/components/MyPage/MyHomePageComponents/MyHomePageMain.vue');
@@ -24,6 +29,7 @@ const MySettingsPageMain = () => import('@/components/MyPage/MyHomePageComponent
 
 // 原有示例（保留参考）
 const AppIntroduction = () => import('@/views/AppIntroduction.vue') // 应用介绍主页
+const TestPage = () => import('@/views/TestPage.vue')
 const Personal = () => import('@/views/Personal.vue') // 个人中心页面
 const LoginRegisterPage = () => import('@/components/SplashPage/LoginRegisterPage.vue') // 登录注册页面组件（路径请根据你的实际文件位置调整）
 const HomeLoginPage = () => import('@/components/SplashPage/HomeLoginPage.vue')
@@ -53,6 +59,15 @@ const routes = [
         meta: {
             title: '应用介绍 - 首页', // 页面标题
             description: '这是应用的介绍主页，展示核心功能与使用说明' // 页面描述
+        }
+    },
+    {
+        path: '/test',
+        name: 'TestPage',
+        component: TestPage,
+        meta: {
+            title: '功能测试页面',
+            description: '支付宝支付、接口调用专用测试页面'
         }
     },
     {
@@ -236,6 +251,23 @@ const routes = [
                 component: MyWallet,
                 meta: { requiresAuth: true, branch: 'MyPage' } // 新增 branch: MyPage
             },
+            // 👇 新增：订单详情路由（嵌套子路由，name跳转专用）
+            {
+                path: 'my/wallet/order-detail',
+                name: 'OrderDetailPage',
+                component: OrderDetailPage,
+                meta: { requiresAuth: true, branch: 'MyPage' }
+            },
+            {
+                path: 'my/wallet/order-query/:orderNo', // 🔥 新增 :orderNo 动态参数
+                name: 'OrderQueryPage',
+                component: OrderQueryPage,
+                props: true, // 🔥 开启props传参
+                meta: {
+                    requiresAuth: true,
+                    branch: 'MyPage'
+                }
+            },
             {
                 path: 'my/wallet/payment/:orderNo',
                 name: 'PaymentPage',
@@ -246,6 +278,19 @@ const routes = [
                     showFooterNav: false,
                     requiresAuth: true,
                     branch: 'MyPage' // 新增 branch: MyPage
+                }
+            },
+            // 订单详情路由（参数：orderId，必填）
+            {
+                path: 'my/wallet/order/:orderId',
+                name: 'OrderPage',
+                component: OrderPage,
+                props: true,
+                meta: {
+                    title: '订单详情',
+                    showFooterNav: false,
+                    requiresAuth: true,
+                    branch: 'MyPage'
                 }
             },
             {

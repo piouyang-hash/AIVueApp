@@ -1,5 +1,4 @@
 <template>
-  <MyPageLayout>
     <div class="feedback-page">
       <!-- 页面标题 -->
       <PageHeader title="意见反馈" @back="handleBack"/>
@@ -60,7 +59,6 @@
         </div>
       </div>
     </div>
-  </MyPageLayout>
 </template>
 
 <script setup>
@@ -114,6 +112,9 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+.feedback-page {
+  padding: 15px;
+}
 
 .feedback-form {
   max-width: 600px;

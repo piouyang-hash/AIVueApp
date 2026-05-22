@@ -3,10 +3,9 @@ import {
     listUserDeletedSessionsApi,
     deleteChatSessionApi,
     recoverChatSessionApi,
-    listChatMessagesApi, untopChatSessionApi, topChatSessionApi,
+    untopChatSessionApi, topChatSessionApi, clearChatSessionUnreadApi, updateChatSessionUnreadApi,
 } from "@/api/ai_chat/ai_chat.session.api.js";
 import {handleApiResponse} from "@/api/constants/ApiFunctionCommon.js";
-import {updateChatSessionUnreadApi} from "../api/ai_chat/ai_chat.session.api.js";
 
 // ===================== 封装后的工具函数（组件可直接调用） =====================
 /**
@@ -59,6 +58,20 @@ export async function updateChatSessionUnread(sessionUuid, normalUnreadCount, sp
     };
     return handleApiResponse(updateChatSessionUnreadApi, dto);
 }
+
+/**
+ * 清空指定AI聊天会话未读消息数（封装层，统一处理接口响应）
+ * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）
+ * @returns {null} - 成功返回null，失败抛出错误
+ */
+export async function clearChatSessionUnread(sessionUuid) {
+    // 【和update写法完全一致】构建后端所需的DTO对象
+    const dto = {
+        sessionUuid
+    };
+    return handleApiResponse(clearChatSessionUnreadApi, dto);
+}
+
 
 /**
  * 删除指定AI聊天会话（移入回收站）

@@ -161,21 +161,20 @@ const isMyPageActive = computed(() => {
 </script>
 
 <style scoped>
-/* ========== 底部导航核心样式（与原组件一致） ========== */
+/* ========== 修复后：配合 flex 布局，删除 fixed ========== */
 .app-footer-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 60px;
   background-color: var(--card-bg);
   display: flex;
   justify-content: space-around;
   align-items: center;
   border-top: 1px solid var(--border-color);
-  z-index: 100;
+  z-index: 10; /* 调低一点，不遮挡内容即可 */
   transition: background-color 0.3s ease, border-color 0.3s ease;
   user-select: none;
+
+  /* 👇 新增：保证宽度铺满 */
+  width: 100%;
 }
 
 .nav-item {

@@ -2,8 +2,26 @@
   <div class="profile-wrapper">
     <!-- 🔥 左侧返回按钮 -->
     <button class="back-btn" @click="goBack">
-      ← 返回
+      <SvgIcon
+          icon-class="back-arrow"
+          size="1rem"
+          className="nav-icon"
+          color="var(--text-tertiary)"
+      />
+      返回
     </button>
+
+    <!-- 右侧新增：设置按钮（setting 图标 + 文字） -->
+    <button class="setting-btn" @click="goToSetting">
+      <SvgIcon
+          icon-class="settings"
+          size="1rem"
+          className="nav-icon"
+          color="var(--text-tertiary)"
+      />
+      设置
+    </button>
+
 
     <!-- 头像 + 姓名 模块 -->
     <div class="profile-info">
@@ -35,12 +53,14 @@
 import { storeToRefs } from 'pinia'
 import { useContactStore } from '@/stores/ContactStore.js'
 import { SERVICE_URLS } from '@/api/constants/serviceUrls.js'
-import { useSessionStore } from '@/stores/sessionStore.js' // 补全会话仓库
 // 导入路由
 import { useRouter } from 'vue-router'
 import generateUUID from "@/utils/uuid.js";
+import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
+import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
 
-const sessionStore = useSessionStore() // 初始化会话store
+const baseSessionStore = useBaseSessionStore()
+const aiRoleStore = useAiRoleStore()
 const router = useRouter()
 const contactStore = useContactStore()
 const { currentContact } = storeToRefs(contactStore)
@@ -56,7 +76,7 @@ const handleCreateNewChat = async () => {
     console.log("联系人发消息：", item)
 
     // 2. 设置当前AI角色ID
-    sessionStore.setCurrentRoleId(item.roleId)
+    aiRoleStore.setCurrentRoleId(item.roleId)
     console.log('已设置当前角色ID：', item.roleId)
 
     // 3. 生成新会话UUID
@@ -64,7 +84,7 @@ const handleCreateNewChat = async () => {
     console.log('生成的新会话UUID：', sessionUuid)
 
     // 4. 设置当前会话
-    sessionStore.setCurrentSessionUuid(sessionUuid)
+    baseSessionStore.setCurrentSessionUuid(sessionUuid)
 
     // 5. 跳转AI聊天页
     await router.push({ name: 'AiChat' })
@@ -90,13 +110,14 @@ const handleCreateNewChat = async () => {
   user-select: none;
 }
 
-/* 🔥 左侧返回按钮 - 高级轻奢样式 */
+/* 左侧返回按钮 - 高级轻奢样式 */
 .back-btn {
   position: absolute;
   left: 24px;
   top: 30px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 8px 12px;
   background: var(--card-bg);
@@ -107,7 +128,25 @@ const handleCreateNewChat = async () => {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
-  z-index: 99;
+}
+
+/* 🔥 右侧设置按钮 - 和返回按钮完全同款对称 */
+.setting-btn {
+  position: absolute;
+  right: 24px; /* 左侧是 left，右侧是 right，完美对称 */
+  top: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px; /* 图标+文字间距 */
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 /* 头像姓名组：超大间距，视觉聚焦 */

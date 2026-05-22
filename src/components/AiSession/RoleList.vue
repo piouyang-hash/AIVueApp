@@ -78,14 +78,12 @@ import {useModalStore} from "@/stores/modalStore.js";
 import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
 import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
 import {useChatDomainStore} from "@/stores/AiChat/session-related/combineMethod/ChatDomainStore.js";
-import {useSessionStore} from "@/utils/sessionStore.js";
 
 const router = useRouter()
 const {isAgentEnabled, isSplitMessageEnabled} = useAiSoftwareConfigStore()
 const baseSessionStore = useBaseSessionStore()
 const aiRoleStore = useAiRoleStore()
 const chatDomainStore = useChatDomainStore()
-const sessionStore = useSessionStore()
 const modalStore = useModalStore()
 
 // ======================
@@ -432,19 +430,28 @@ const handleClickRole = async (e, item) => {
   transform: scale(0.98);
 }
 
-/* 数字圆球基础样式 */
+/* 数字圆球基础样式 → 改造为：高度固定+宽度自适应椭圆 */
 .role-unread-badge {
   position: absolute;
   top: 10px;
   right: 20px;
-  width: 20px;
+  /* 核心：固定高度，宽度自适应 */
   height: 20px;
-  border-radius: 50%;
+  /* 最小宽度=高度，保证1个数字时是正圆 */
+  min-width: 20px;
+  /* 左右内边距，让数字不贴边，自动撑开宽度 */
+  padding: 0 4px;
+  /* 高度一半 → 永远是椭圆（正圆/长椭圆） */
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   color: #fff;
+  /* 防止数字折行 */
+  white-space: nowrap;
+  /* 优化：数字居中不偏移 */
+  box-sizing: border-box;
 }
 
 /* 活跃状态：绿色（沿用你原有的成功色） */
@@ -452,11 +459,13 @@ const handleClickRole = async (e, item) => {
   background: var(--success-color);
 }
 
-/* 🔥 新增：活跃无消息 → 缩小绿点（可自己改尺寸） */
+/* 活跃无消息 → 缩小绿点（完全保留原效果） */
 .badge-green.badge-green-empty {
-  width: 12px;   /* 缩小后的宽度（可调） */
-  height: 12px;  /* 缩小后的高度（可调） */
-  font-size: 0; /* 隐藏空白占位 */
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  padding: 0 !important;
+  font-size: 0;
 }
 
 /* 非活跃状态：灰色 */

@@ -98,8 +98,17 @@ const handleClickSession = async (session) => {
   // 点击时关闭所有侧滑
   closeSessionSlide()
   console.log('点击了下拉会话：', session.chatTitle, 'sessionUuid：', session.sessionUuid);
+
+  // 1. 设置当前会话
   baseSessionStore.setCurrentSessionUuid(session.sessionUuid);
+
+  // 2. 获取当前会话消息
   await aiMessageStore.fetchCurrentSessionMessages();
+
+  // 🔥 核心：点击进入会话 → 调用清空未读（非0才执行，自动调接口）
+  await unReadMessageStore.clearSessionUnread(session.sessionUuid);
+
+  // 3. 跳转路由到聊天页
   await router.push({
     name: 'AiChat',
     params: {sessionUuid: session.sessionUuid}

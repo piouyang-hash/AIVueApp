@@ -5,6 +5,7 @@ import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
 import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
 import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
 import {useAiChatInputConfigStore} from "@/stores/AiChat/session-related/aiChatInputConfigStore.js";
+import {useUnReadMessageStore} from "@/stores/AiChat/session-related/combineMethod/unReadMessageStore.js";
 
 // 创建会话仓库
 export const useChatDomainStore = defineStore('chatDomain', () => {
@@ -13,19 +14,18 @@ export const useChatDomainStore = defineStore('chatDomain', () => {
     const aiRoleStore = useAiRoleStore()
     const aiMessageStore = useAiMessageStore()
     const aiChatInputConfigStore = useAiChatInputConfigStore()
+    const unReadMessageStore = useUnReadMessageStore()
 
     // 🔥 核心：computed 自动构建【roleId => 会话数组】映射
-    // 自动依赖 chatList，数据变化时实时更新！
+    // 自动依赖 fillSessionUnreadCount（带未读数），数据变化时实时更新！
     const roleSessionMap = computed(() => {
         const map = {}
-        // 遍历所有会话，按角色ID分组
-        baseSessionStore.chatList.forEach(session => {
+        // 🔥 唯一修改：遍历【带未读数的计算属性】，而不是原始列表
+        unReadMessageStore.fillSessionUnreadCount.forEach(session => {
             const roleId = session.roleId
-            // 不存在则初始化空数组
             if (!map[roleId]) {
                 map[roleId] = []
             }
-            // 推入当前会话（包含sessionUuid/roleId等全部信息）
             map[roleId].push(session)
         })
         return map

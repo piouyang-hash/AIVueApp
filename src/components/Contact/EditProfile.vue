@@ -117,8 +117,7 @@ import DaySlide from "@/components/Tiny/DaySlide.vue";
 import { useContactStore } from '@/stores/ContactStore'
 import { storeToRefs } from 'pinia'
 import {useRouter} from "vue-router";
-import {createAiRole} from "../../services/ai_chat.role.service.js";
-
+import {createAiRole} from "@/services/ai_chat.role.service.js";
 const router = useRouter()
 const contactStore = useContactStore()
 const { agentForm } = storeToRefs(contactStore)

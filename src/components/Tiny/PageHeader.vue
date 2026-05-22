@@ -79,6 +79,7 @@ const handleBack = () => {
   color: var(--text-primary);
   font-weight: 600;
   margin: 0;
+  transform: translateY(-2px);
 }
 
 .placeholder {

@@ -15,13 +15,5 @@ import MyPageLayout from "@/components/MyPage/MyPageLayout.vue";
 </script>
 
 <style scoped>
-.my-wallet-page {
-  width: 100%;
-  height: 100vh;
-  background-color: var(--bg-color);
-}
-.page-container {
-  width: 100%;
-  height: 100%;
-}
+
 </style>

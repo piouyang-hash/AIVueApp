@@ -61,6 +61,53 @@ export const useBaseSessionStore = defineStore('baseSession', () => {
         console.log('已设置当前会话UUID：', uuid)
     }
 
+    // ====================== 🔥 新增三个核心方法 ======================
+    /**
+     * 1. 关闭所有会话
+     * 将所有会话的状态统一修改为 CLOSED
+     */
+    const closeAllSessions = () => {
+        if (!chatList.value.length) return
+        chatList.value.forEach(item => {
+            item.status = 'CLOSED'
+        })
+        console.log('✅ 已关闭所有会话')
+    }
+
+    /**
+     * 2. 激活单个会话
+     * @param {string} sessionUuid - 要激活的会话UUID
+     */
+    const activateSingleSession = (sessionUuid) => {
+        if (!sessionUuid) {
+            console.warn('激活失败：缺少会话UUID')
+            return
+        }
+        const targetSession = chatList.value.find(item => item.sessionUuid === sessionUuid)
+        if (targetSession) {
+            targetSession.status = 'ACTIVE'
+            console.log(`✅ 已激活会话：${sessionUuid}`)
+        } else {
+            console.warn(`激活失败：未找到会话 ${sessionUuid}`)
+        }
+    }
+
+    /**
+     * 3. 仅激活指定一个会话（关闭全部 + 激活当前）
+     * @param {string} sessionUuid - 要唯一激活的会话UUID
+     */
+    const activateOnlyOneSession = (sessionUuid) => {
+        if (!sessionUuid) {
+            console.warn('唯一激活失败：缺少会话UUID')
+            return
+        }
+        // 先关闭所有
+        closeAllSessions()
+        // 再激活指定会话
+        activateSingleSession(sessionUuid)
+        console.log(`✅ 已唯一激活会话：${sessionUuid}`)
+    }
+
     // 暴露所有数据和方法
     return {
         chatList,
@@ -69,5 +116,9 @@ export const useBaseSessionStore = defineStore('baseSession', () => {
         fetchUserSessions,
         setCurrentSessionUuid,
         updateSessionLastMessage,
+        // 🔥 新增导出
+        closeAllSessions,
+        activateSingleSession,
+        activateOnlyOneSession
     }
 })

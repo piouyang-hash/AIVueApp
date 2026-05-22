@@ -1,19 +1,22 @@
 <template>
-  <MyWalletLayout>
     <div class="wallet-page">
       <!-- 页面头部 -->
       <PageHeader title="我的钱包" @back="handleBack"/>
+
+      <UnpaidOrderModal />
+      <!-- 新增：右上角订单详情按钮 -->
+      <div class="order-detail-btn" @click="handleOrderDetail">订单详情</div>
 
       <!-- 钱包主体区域 -->
       <div class="wallet-container">
         <!-- 余额展示卡片 -->
         <div class="balance-card">
-          <div class="balance-label">账户余额</div>
-          <!-- 根据请求状态显示「请求中」或真实余额 -->
+          <div class="balance-label">账户积分</div>
+          <!-- ✅ 替换变量名，直接展示积分 -->
           <div class="balance-amount">
-            {{ isLoading ? '请求中...' : `¥ ${balance}` }}
+            {{ isLoading ? '请求中...' : userPoint }}
           </div>
-          <div class="balance-desc">余额可用于充值、消费等场景</div>
+          <div class="balance-desc">积分是和AI聊天的消耗性代币</div>
         </div>
 
         <!-- 充值按钮 -->
@@ -23,13 +26,12 @@
 
         <!-- 钱包说明（可选，增加页面完整性） -->
         <div class="wallet-tips">
-          充值金额实时到账，支持多种支付方式
+          充值的金额可能要1到3分钟到账，支持微信和支付宝
         </div>
       </div>
       <RechargeAmountCard/>
       <CreateOrderModal/>
     </div>
-  </MyWalletLayout>
 </template>
 
 <script setup>
@@ -42,24 +44,25 @@ import CreateOrderModal from "@/components/MyPage/MyHomePageComponents/MyWalletC
 import {onMounted, ref} from "vue";
 import {fetchMyAccountBalance} from "@/services/account.service.js";
 import MyWalletLayout from "@/components/MyPage/MyHomePageComponents/MyWalletComponents/MyWalletLayout.vue";
+import {getUserPointBalance} from "@/services/ai_chat.token.service.js";
+import UnpaidOrderModal from "@/components/MyPage/MyHomePageComponents/MyWalletComponents/UnpaidOrderModal.vue";
 
 // 新增：请求加载状态（初始为true，代表正在请求）
 const isLoading = ref(true)
-const balance = ref('0.00')
+const userPoint = ref(0)
 
-// 组件挂载时查询余额
+// 组件挂载时查询积分
 onMounted(async () => {
+  // 调用函数
+  const result = await getUserPointBalance()
+  // 打印接口返回的完整VO对象
+  console.log('getUserPointBalance 调用结果：', result)
 
-  // 直接调用余额查询函数（极简，无try/catch）
-  const result = await fetchMyAccountBalance()
-
-  // 核心：请求完成后，关闭加载状态
+  // 请求完成，关闭加载
   isLoading.value = false
 
-  // 只有查询成功且有值时，更新余额（保留两位小数）
-  if (result !== null) {
-    balance.value = result.toFixed(2)
-  }
+  // ✅ 核心修改：取 totalPoint，自动保留小数点后两位，无数据则为 0
+  userPoint.value = result?.totalPoint ? Number(result.totalPoint).toFixed(2) : 0
 })
 
 const router = useRouter()
@@ -75,13 +78,20 @@ const handleRecharge = () => {
   modalStore.openMyPageRechargeAmountModal();
 }
 
+// 订单详情按钮点击事件（路由跳转）
+const handleOrderDetail = () => {
+  // 通过 name 跳转（最稳定，不依赖路径）
+  router.push({ name: 'OrderDetailPage' })
+}
+
 </script>
 
 <style scoped>
 /* 页面整体容器 */
 .wallet-page {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  padding: 15px;
   background-color: var(--bg-color);
 }
 
@@ -92,6 +102,22 @@ const handleRecharge = () => {
   flex-direction: column;
   align-items: center;
   gap: 32px;
+}
+
+.order-detail-btn {
+  /* 沿用返回按钮精准定位 */
+  position: absolute;
+  right: 15px;
+  top: 20px;
+  /* 保留边框文字样式 */
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition-default);
 }
 
 /* 余额卡片 */

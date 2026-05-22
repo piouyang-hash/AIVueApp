@@ -1,7 +1,6 @@
 // 导入Pinia创建仓库的方法 + Vue响应式API
 import { defineStore } from 'pinia'
-import {computed, ref} from 'vue'
-import {getChatMessages, getUserNormalSessions} from "@/services/ai_chat.session.service.js";
+import {ref} from 'vue'
 import {getMyAiRoleList} from "@/services/ai_chat.role.service.js";
 
 

@@ -1,16 +1,13 @@
 <template>
-  <MyPageLayout>
     <div class="collection-page">
       <!-- 页面头部 -->
       <PageHeader title="我的收藏" @back="handleBack"/>
 
       <!-- 空收藏状态 -->
       <div class="empty-collection">
-        <p class="empty-text">你还没有收藏任何书籍</p>
-        <p class="empty-tip">快去图书馆收藏喜欢的书籍吧~</p>
+        <p class="empty-text">你还没有收藏任何对话</p>
       </div>
     </div>
-  </MyPageLayout>
 </template>
 
 <script setup>
@@ -27,6 +24,9 @@ const handleBack = () => {
 </script>
 
 <style scoped>
+.collection-page {
+  padding: 15px;
+}
 
 .empty-collection {
   flex: 1;

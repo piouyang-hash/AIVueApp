@@ -66,6 +66,10 @@ export const useModalStore = defineStore('modalStore', {
                 RechargeAmountModal: {
                     Visible: false
                 },
+                UnpaidOrderModal: {
+                    Visible: false,
+                    UnpaidOrder: null
+                },
                 // 新增：创建订单弹窗配置（两个参数：显隐 + 选中金额）
                 CreateOrderModal: {
                     Visible: false,
@@ -316,7 +320,21 @@ export const useModalStore = defineStore('modalStore', {
             this.pageModals.MyPage.RechargeAmountModal.Visible = false
         },
 
-        // 5. 创建订单弹窗（含金额赋值 + 联动关闭充值弹窗）
+        // 5. 未支付订单弹窗（open 传入订单对象参数）
+        openMyPageUnpaidOrderModal(order) {
+            // 赋值未支付订单对象
+            this.pageModals.MyPage.UnpaidOrderModal.UnpaidOrder = order;
+            // 打开弹窗
+            this.pageModals.MyPage.UnpaidOrderModal.Visible = true;
+        },
+        closeMyPageUnpaidOrderModal() {
+            // 关闭弹窗
+            this.pageModals.MyPage.UnpaidOrderModal.Visible = false;
+            // 可选：清空订单对象（保持数据干净）
+            this.pageModals.MyPage.UnpaidOrderModal.UnpaidOrder = null;
+        },
+
+        // 6. 创建订单弹窗（含金额赋值 + 联动关闭充值弹窗）
         openMyPageCreateOrderModal(amount) {
             // 打开订单弹窗时，先关闭充值挡位弹窗（两者不共存）
             this.closeMyPageRechargeAmountModal();

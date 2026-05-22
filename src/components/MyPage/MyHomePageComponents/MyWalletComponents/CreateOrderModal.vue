@@ -11,8 +11,8 @@
 
       <!-- 1. 金额确认区域 -->
       <div class="amount-confirm">
-        <span class="label">充值金额：</span>
-        <span class="amount">{{ modalStore.pageModals.MyPage.CreateOrderModal.amount }} 元</span>
+        <span class="label">充值选项：</span>
+        <span class="amount">{{ modalStore.pageModals.MyPage.CreateOrderModal.amount }} 积分</span>
       </div>
 
       <!-- 2. 充值理由选择区域（仅修改 optional 部分） -->
@@ -47,7 +47,7 @@
             :class="{ disabled: creatingOrder }"
             @click="handleCreateOrder"
         >
-          {{ creatingOrder ? '订单创建中...' : '创建订单' }}
+          {{ creatingOrder ? '前往收银台...' : '去支付' }}
         </div>
       </div>
     </div>
@@ -77,7 +77,7 @@ const handleCreateOrder = async () => {
   // 防止重复点击
   if (creatingOrder.value) return
 
-  const amount = modalStore.MyPage.CreateOrderModal.amount
+  const amount = modalStore.pageModals.MyPage.CreateOrderModal.amount
   const reason = selectedReason.value // 你原来的备注/理由
 
   console.log('创建订单：', { amount, reason })

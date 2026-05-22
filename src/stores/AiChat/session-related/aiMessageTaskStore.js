@@ -71,10 +71,10 @@ export const useAiMessageTaskStore = defineStore('aiMessageTask', () => {
     })
 
     /**
-     * 2. 更新任务状态（AI流式结束时调用）
+     * 2. 更新任务状态（AI流式结束/异常时调用）
      * @param {string} sessionUuid - 会话ID
      * @param {string} taskId - 任务ID
-     * @param {'pending' | 'finished' | 'canceled'} status - 新状态
+     * @param {'pending' | 'finished' | 'canceled' | 'error'} status - 新状态
      */
     const updateSessionTaskStatus = (sessionUuid, taskId, status) => {
         // 🔥 调试打印1：输出函数调用的所有入参

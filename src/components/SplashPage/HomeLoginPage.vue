@@ -51,7 +51,6 @@
                 placeholder="请输入密码"
                 required
                 class="form-input"
-                @blur="validatePassword"
             />
             <!-- 保留原有密码图标 -->
             <div class="password-input-icon">
@@ -160,9 +159,14 @@ const validatePassword = () => {
   return true
 }
 
-// 4. 表单有效性计算（控制按钮禁用）
+// 4. 表单有效性计算（控制按钮禁用 → 完美修复版）
 const isFormValid = computed(() => {
-  return !!email.value && !!password.value && validateEmail() && validatePassword()
+  return (
+      !!email.value &&          // 邮箱必填
+      !!password.value &&       // 密码必填
+      validateEmail() &&        // 邮箱验证（失焦/提交才报错）
+      password.value.length >= 6 // 单独写：密码长度≥6（纯判断，不触发错误提示！）
+  )
 })
 
 // 5. 核心登录逻辑（异步处理）

@@ -68,6 +68,20 @@ export async function updateChatSessionUnreadApi(dto) {
 }
 
 /**
+ * 清空指定AI聊天会话未读消息数
+ * 对应后端：POST /ai/chat/session/clear-unread
+ * @param {Object} dto - 清空未读DTO对象
+ * @returns {Promise<Object>} - 响应：{success: boolean, data: null, msg: string}
+ */
+export async function clearChatSessionUnreadApi(dto) {
+    return withAuth(aiChatRequest, {
+        url: `/ai/chat/session/clear-unread`,
+        method: 'POST',
+        data: dto // 直接传递DTO对象
+    });
+}
+
+/**
  * 删除指定AI聊天会话（移入回收站）
  * 对应后端：POST /ai/chat/session/{sessionUuid}/delete
  * @param {string} sessionUuid - 会话UUID（标准UUIDv4格式）

@@ -1,5 +1,4 @@
 <template>
-  <MyPageLayout>
     <div class="help-center-page">
       <!-- 页面标题 -->
       <PageHeader title="帮助中心" @back="handleBack"/>
@@ -68,7 +67,6 @@
         </div>
       </div>
     </div>
-  </MyPageLayout>
 </template>
 
 <script setup>
@@ -88,8 +86,8 @@ const handleBack = () => {
 <style scoped>
 .help-center-page {
   overflow-y: auto;
-  padding-bottom: 60px;
   box-sizing: border-box;
+  padding: 15px;
 }
 
 .help-content {

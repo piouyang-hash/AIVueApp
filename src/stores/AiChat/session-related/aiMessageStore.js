@@ -66,21 +66,37 @@ export const useAiMessageStore = defineStore('aiMessage', () => {
         console.log(`会话${sessionUuid} 消息数组已赋值：`, messagesArray)
     }
 
-    // 🔥 新增2：给指定会话 追加单条消息（发消息时用）
+    // 🔥 新增2：给指定会话 追加单条消息（发消息时用）+ 内部统一去重校验
     const pushMessageToSession = (sessionUuid, messageItem) => {
+        // 基础参数防护，防止 undefined 报错
+        if (!sessionUuid || !messageItem) return;
+
+        // 构造消息（保留你的临时消息逻辑）
         const finalMessage = {
             ...messageItem,
             ...(!messageItem.messageId && { tempMessage: true })
         };
 
-        // ✅ 修复：所有地方加 .value
+        // 初始化会话消息数组
         if (!sessionMessages.value[sessionUuid]) {
             sessionMessages.value[sessionUuid] = [];
         }
 
-        sessionMessages.value[sessionUuid].push(finalMessage);
+        // ===================== 🔥 统一去重：有 messageId 就校验 =====================
+        if (finalMessage.messageId) {
+            const isDuplicate = sessionMessages.value[sessionUuid].some(
+                item => item.messageId === finalMessage.messageId
+            );
+            // 重复直接跳过，不 push
+            if (isDuplicate) {
+                console.log(`✅ push 去重：会话${sessionUuid} 消息ID${finalMessage.messageId} 已存在，跳过`);
+                return;
+            }
+        }
 
-        // ✅ 修复：响应式更新
+        // 正常追加消息
+        sessionMessages.value[sessionUuid].push(finalMessage);
+        // 触发响应式更新
         sessionMessages.value = { ...sessionMessages.value };
     };
 
@@ -133,7 +149,7 @@ export const useAiMessageStore = defineStore('aiMessage', () => {
             role: 'ASSISTANT',
             createTime: new Date().toISOString(),
             messageId: meta.aiMessageId,
-            sessionUuid: meta.sessionUuid,
+            sessionUuid: sessionUuid,
             sortTimestamp: Date.now(),
             splitContent: meta.aiReplyContent
                 ? [{
@@ -184,9 +200,8 @@ export const useAiMessageStore = defineStore('aiMessage', () => {
         baseSessionStore.updateSessionLastMessage(sessionUuid, text);
     };
 
-    // 🔥 最终版：回写+清理流式消息
+    // 🔥 最终版：回写+清理流式消息（校验交给 push）
     const clearStreamingMessageByUuid = (sessionUuid, taskId) => {
-        // ✅ 修复：必须加 .value
         if (!sessionUuid || !taskId || !streamingAiMessage.value[sessionUuid]) return;
 
         const sessionTaskMap = streamingAiMessage.value[sessionUuid];
@@ -195,13 +210,31 @@ export const useAiMessageStore = defineStore('aiMessage', () => {
         if (!completeMessage) return;
 
         completeMessage.isComplete = true;
-
+        // 直接调用 push，重复校验由 push 内部处理
         pushMessageToSession(sessionUuid, completeMessage);
+        console.log(`✅ 流式消息[任务ID:${taskId}]已回写历史：会话【${sessionUuid}】`);
 
+        // 清理流式缓存
         delete sessionTaskMap[taskId];
         streamingAiMessage.value = { ...streamingAiMessage.value };
+    };
 
-        console.log(`✅ 流式消息[任务ID:${taskId}]已回写历史：会话【${sessionUuid}】`);
+    // 🔥 新增：回写+清理用户等待中消息（校验交给 push）
+    const clearWaitingUserMessage = (sessionUuid, taskId) => {
+        if (!sessionUuid || !taskId || !waitingUserMessage.value[sessionUuid]) return;
+
+        const sessionTaskMap = waitingUserMessage.value[sessionUuid];
+        const userMessage = sessionTaskMap[taskId];
+
+        if (!userMessage) return;
+
+        // 直接调用 push，重复校验由 push 内部处理
+        pushMessageToSession(sessionUuid, userMessage);
+        console.log(`✅ 用户等待消息[任务ID:${taskId}]已回写历史：会话【${sessionUuid}】`);
+
+        // 清理等待中的消息缓存
+        delete sessionTaskMap[taskId];
+        waitingUserMessage.value = { ...waitingUserMessage.value };
     };
 
     // 🔥 新增：清空所有会话的流式AI消息
@@ -241,6 +274,7 @@ export const useAiMessageStore = defineStore('aiMessage', () => {
         pushMessageToSession,
         getCurrentMergedMessages,
         clearStreamingMessageByUuid,
+        clearWaitingUserMessage,
         fillTempMessage,
         createUserWaitingMessage,
         createAiReplyMessage,

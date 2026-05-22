@@ -259,6 +259,7 @@ export function withSSEChatStream(config, onChunk, onEnd, onError) {
 
 // ========== 核心修改：仅给aiChatRequest配置更长的超时时间 ==========
 import { SERVICE_URLS } from '@/api/constants/serviceUrls.js'
+export const testRequest = createRequest(SERVICE_URLS.TEST_METHOD, 10000)
 export const userRequest = createRequest(SERVICE_URLS.USER_SERVICE) // 仍用默认5000ms
 export const bookRequest = createRequest(SERVICE_URLS.BOOK_SERVICE) // 仍用默认5000ms
 export const orderRequest = createRequest(SERVICE_URLS.ORDER_SERVICE); // 仍用默认5000ms

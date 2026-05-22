@@ -75,10 +75,6 @@ const handleMessageClick = () => {
   justify-content: center;
 }
 
-.message-btn:hover {
-  background-color: var(--hover-bg);
-}
-
 /* 信封图标样式（与设置图标尺寸一致） */
 .message-icon {
   width: 20px; /* 图标宽度，可根据需要调整 */
@@ -98,10 +94,6 @@ const handleMessageClick = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.setting-btn:hover {
-  background-color: var(--hover-bg);
 }
 
 /* SVG图标样式 */

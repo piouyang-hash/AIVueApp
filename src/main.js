@@ -33,7 +33,9 @@ app.component('SvgIcon', SvgIcon); // 全局注册，任意页面可直接用<Sv
 // 注册所有插件（顺序不影响核心功能）
 app.use(pinia)        // 注册 Pinia
 app.use(router)       // 注册路由
-app.use(ElementPlus)  // 注册 Element Plus
+app.use(ElementPlus, {
+    zIndex: 10000  // 全局弹层初始 z-index
+}) // 注册 Element Plus
 
 // 注册所有手势指令
 Object.keys(gestureDirectives).forEach((directiveName) => {
