@@ -55,9 +55,10 @@ import MyWalletLayout from "@/components/MyPage/MyHomePageComponents/MyWalletCom
 import {getAiRechargeOrderList} from "@/services/ai_chat.order.service.js";
 
 const router = useRouter()
-// 返回上一页
+
+// 钱包页返回 → 我的钱包页
 const handleBack = () => {
-  router.back()
+  router.push({ name: 'MyWallet' })
 }
 
 // 点击订单条目 → 跳转到查询订单页面

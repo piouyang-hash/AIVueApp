@@ -58,7 +58,7 @@ export async function stopAiStreamChatApi(params) {
  * 需携带JWT Token，入参包含用户消息和会话UUID，流式接收AI回复
  * @param {Object} params - 对话请求参数
  * @param {string} params.message - 用户输入的对话消息
- * @param {string|null|undefined} params.sessionUuid - 会话UUID（标准UUIDv4格式，允许null/undefined，后端处理新建会话）
+ * @param {string|null|undefined} params.sessionUuid - 会话UUID（标准UUID v4格式，允许null/undefined，后端处理新建会话）
  * @param {Function} onData - 流式数据回调（每次收到chunk触发，参数为解析后的文本）
  * @param {Function} [onEnd] - 可选，流结束回调
  * @param {Function} [onError] - 可选，错误回调（鉴权失败/网络错误/流异常等）

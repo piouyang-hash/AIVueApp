@@ -1,12 +1,11 @@
 <template>
   <div class="app-footer-nav" v-if="pageStore.footerNavVisible">
     <!-- 列表：基于 branch=ListPage 激活 -->
-    <router-link
-        :to="{ name: 'ChatListPage' }"
+    <div
         class="nav-item"
         :class="{ active: isListActive }"
+        @click="goToListPage"
     >
-      <!-- 使用封装的 SvgIcon 组件，动态绑定激活状态属性 -->
       <SvgIcon
           :icon-class="isListActive ? 'list-active' : 'list'"
           size="1rem"
@@ -14,17 +13,15 @@
           :color="isListActive ? '#1890ff' : 'var(--text-tertiary)'"
       />
       <span class="nav-text">列表</span>
-    </router-link>
+    </div>
 
-    <!-- ====================== 核心修改 ====================== -->
     <!-- 智能体开启 → 显示 微智能（合并项） -->
     <template v-if="!configStore.isAgentEnabled">
-      <router-link
-          :to="{ name: 'WeAgentPage' }"
+      <div
           class="nav-item"
           :class="{ active: isWeAgentActive }"
+          @click="goToWeAgentPage"
       >
-        <!-- 使用你指定的图标：agent / agent-active -->
         <SvgIcon
             :icon-class="isWeAgentActive ? 'agent-active' : 'agent'"
             size="1rem"
@@ -32,31 +29,31 @@
             :color="isWeAgentActive ? '#1890ff' : 'var(--text-tertiary)'"
         />
         <span class="nav-text">微智能</span>
-      </router-link>
+      </div>
     </template>
 
     <!-- 智能体关闭 → 显示原来的 模拟游戏 + 消息 -->
     <template v-else>
       <!-- 通讯 -->
-      <router-link
-          :to="{ name: 'ContactPage' }"
+      <div
           class="nav-item"
           :class="{ active: isContactActive }"
+          @click="goToContactPage"
       >
         <SvgIcon
-            :icon-class="isContactActive ? 'contact-active' : 'contact'"
+            :icon-class="isContactActive ? 'phone-active' : 'phone'"
             size="1rem"
-            className="nav-icon"
+            className="nav-icon phone-icon"
             :color="isContactActive ? '#1890ff' : 'var(--text-tertiary)'"
         />
         <span class="nav-text">通讯</span>
-      </router-link>
+      </div>
 
       <!-- 消息 -->
-      <router-link
-          :to="{ name: 'MessagePage' }"
+      <div
           class="nav-item"
           :class="{ active: isMessageActive }"
+          @click="goToMessagePage"
       >
         <SvgIcon
             :icon-class="isMessageActive ? 'message-active' : 'message'"
@@ -65,18 +62,16 @@
             :color="isMessageActive ? '#1890ff' : 'var(--text-tertiary)'"
         />
         <span class="nav-text">消息</span>
-      </router-link>
+      </div>
     </template>
-    <!-- ======================================================= -->
 
-    <!-- 个人：基于 branch=MyHomePageMain 激活，保留头像逻辑 -->
-    <router-link
-        :to="{ name: 'MyHomePageMain' }"
+    <!-- 个人：保留头像逻辑 -->
+    <div
         class="nav-item"
         :class="{ active: isMyPageActive }"
+        @click="goToMyPage"
     >
       <div class="nav-icon-wrapper">
-        <!-- 有头像：显示头像（无文字），保留原有逻辑 -->
         <img
             v-if="userAvatar"
             :src="userAvatar"
@@ -84,7 +79,6 @@
             class="avatar-icon"
             @error="handleAvatarError(isMyPageActive)"
         />
-        <!-- 无头像：使用 SvgIcon 组件，动态绑定激活状态 -->
         <SvgIcon
             v-else
             :icon-class="isMyPageActive ? 'profile-active' : 'profile'"
@@ -93,9 +87,8 @@
             :color="isMyPageActive ? '#1890ff' : 'var(--text-tertiary)'"
         />
       </div>
-      <!-- 无头像时才显示文字 -->
       <span class="nav-text" v-if="!userAvatar">个人</span>
-    </router-link>
+    </div>
   </div>
 </template>
 
@@ -133,6 +126,36 @@ const userAvatar = computed(() => {
 const handleAvatarError = (isActive) => {
   fallbackAvatar.value = isActive ? profileActiveIcon : profileIcon;
 };
+
+// 1. 列表页
+const goToListPage = () => {
+  const lastPage = pageStore.getNavLastPage('ChatListPage', { name: 'ChatListPage' })
+  router.push(lastPage)
+}
+
+// 2. 微智能
+const goToWeAgentPage = () => {
+  const lastPage = pageStore.getNavLastPage('WeAgentPage', { name: 'WeAgentPage' })
+  router.push(lastPage)
+}
+
+// 3. 通讯页
+const goToContactPage = () => {
+  const lastPage = pageStore.getNavLastPage('ContactPage', { name: 'ContactPage' })
+  router.push(lastPage)
+}
+
+// 4. 消息页
+const goToMessagePage = () => {
+  const lastPage = pageStore.getNavLastPage('MessagePage', { name: 'MessagePage' })
+  router.push(lastPage)
+}
+
+// 5. 个人中心
+const goToMyPage = () => {
+  const lastPage = pageStore.getNavLastPage('MyPage', { name: 'MyHomePageMain' })
+  router.push(lastPage)
+}
 
 // ========== 导航激活状态判断（基于route.meta.branch） ==========
 // 列表激活：匹配 branch=ListPage
@@ -218,6 +241,11 @@ const isMyPageActive = computed(() => {
 .we-agent-icon {
   width: 28px !important;
   height: 28px !important;
+}
+
+.phone-icon {
+  width: 25px !important;
+  height: 25px !important;
 }
 
 /* 头像样式：圆形、适配导航高度 */

@@ -46,6 +46,8 @@ const ContactList = () => import('@/components/Contact/ContactList.vue')
 // 新增：联系人详情页懒加载导入
 const ContactProfile = () => import('@/components/Contact/ContactProfile.vue')
 const EditProfile = () => import('@/components/Contact/EditProfile.vue') // 🔥 新增
+const AgentStore = () => import('@/components/Contact/AgentStore.vue')
+const AgentDetail = () => import('@/components/Contact/AgentDetail.vue')
 
 const Message = () => import('@/components/Message/Message.vue') // 消息组件
 
@@ -210,6 +212,28 @@ const routes = [
                     branch: 'ContactPage', // 导航激活保持一致
                     requiresAuth: true,
                     showFooterNav: false,
+                }
+            },
+            {
+                path: 'contact/agent-store', // 完整路径：/personal/contact/agent-store
+                name: 'AgentStorePage', // 唯一路由名
+                component: AgentStore, // 懒加载组件
+                meta: {
+                    title: '代理商管理',
+                    description: '代理商信息管理/存储',
+                    branch: 'ContactPage', // 导航激活保持一致
+                    requiresAuth: true
+                }
+            },
+            {
+                path: 'contact/agent-detail', // 完整路径：/personal/contact/agent-detail
+                name: 'AgentDetailPage', // 唯一路由名
+                component: AgentDetail, // 懒加载组件
+                meta: {
+                    title: '代理商详情',
+                    description: '代理商详情查看/编辑',
+                    branch: 'ContactPage', // 导航激活保持一致
+                    requiresAuth: true
                 }
             },
             {
@@ -443,6 +467,15 @@ router.beforeEach((to, from, next) => {
 
     // 5. 正常放行
     next()
+})
+
+// 路由切换时，自动记录最后一页
+router.afterEach((to) => {
+    const pageStore = usePageStore()
+    // 只要页面有 branch，就自动记录
+    if (to.meta.branch) {
+        pageStore.setNavLastPage(to.meta.branch, to.fullPath)
+    }
 })
 
 export default router

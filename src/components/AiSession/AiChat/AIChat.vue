@@ -61,7 +61,6 @@
 <script setup>
 import {computed, nextTick, ref} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-
 // 导入资源（仅保留顶部导航/输入框相关）
 import BackIcon from '@/static/icons/back.svg'
 import HeartBeat from "@/components/AiSession/AiChat/heart-beat.vue";

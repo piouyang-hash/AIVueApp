@@ -41,10 +41,12 @@ const handleAddContact = () => {
   });
 };
 
-// 右侧导航：仅打印日志（逻辑后续自行补充）
+// 点击事件：导航到代理商管理页
 const handleNavigate = () => {
-  console.log('【导航按钮】被点击');
-};
+  console.log('【导航按钮】点击，跳转到代理商管理页')
+  // 路由name严格对应你配置的 AgentStorePage
+  router.push({ name: 'AgentStorePage' })
+}
 </script>
 
 <style scoped>

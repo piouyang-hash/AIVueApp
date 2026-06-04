@@ -108,6 +108,22 @@ export const useBaseSessionStore = defineStore('baseSession', () => {
         console.log(`✅ 已唯一激活会话：${sessionUuid}`)
     }
 
+    // ====================== 🔥 新增：置顶/取消置顶 专用方法 ======================
+    /**
+     * 更新单个会话的信息（支持置顶、修改属性等）
+     * @param {string} sessionUuid - 会话ID
+     * @param {object} updateData - 要更新的数据 { isTop: 1, topAt: 'xxx' }
+     */
+    const updateSession = (sessionUuid, updateData) => {
+        // 找到 Pinia 里的源会话对象
+        const targetSession = chatList.value.find(item => item.sessionUuid === sessionUuid)
+        if (targetSession) {
+            // 批量更新属性（响应式更新，切页不会丢失）
+            Object.assign(targetSession, updateData)
+            console.log(`✅ Pinia 会话已同步更新：${sessionUuid}`, updateData)
+        }
+    }
+
     // 暴露所有数据和方法
     return {
         chatList,
@@ -119,6 +135,7 @@ export const useBaseSessionStore = defineStore('baseSession', () => {
         // 🔥 新增导出
         closeAllSessions,
         activateSingleSession,
-        activateOnlyOneSession
+        activateOnlyOneSession,
+        updateSession,
     }
 })

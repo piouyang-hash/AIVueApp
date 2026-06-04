@@ -189,7 +189,7 @@ onMounted(async () => {
   scrollToBottom()
 
   // 2. 🔥 清空【当前选中会话】的所有未读（非切分+切分全部清零）
-  unReadMessageStore.clearSessionUnread(baseSessionStore.currentSessionUuid)
+  await unReadMessageStore.clearSessionUnread(baseSessionStore.currentSessionUuid)
 
   // 3. 等待DOM渲染完成，启动消息监听
   await nextTick()
@@ -272,14 +272,18 @@ const scrollToBottom = () => {
 
 // ========== 7. 监听用户消息变化 → 自动滚动 ==========
 watch(
-    () => aiMessageStore.waitingUserMessage,
-    () => {
-      // 用户消息新增 → 立即滚到底部
-      scrollToBottom()
+    // 🔥 只监听 消息数组的长度
+    () => aiMessageStore.waitingUserMessage.length,
+    (newLength, oldLength) => {
+      // 只有 新长度 > 旧长度（新增消息）时，才滚动
+      if (newLength > oldLength) {
+        scrollToBottom()
+      }
+      // 长度减少/不变 → 不执行任何操作
     },
     {
-      deep: true, // 监听嵌套对象变化（必须加！）
-      flush: 'post' // 等待DOM更新后再滚动，避免错位
+      flush: 'post' // 等待DOM更新后滚动
+      // 🔥 不需要 deep: true 了！大幅提升性能
     }
 )
 

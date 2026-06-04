@@ -114,9 +114,9 @@ onMounted(async () => {
 // 支付方式
 const selectedPayment = ref('multi_pay');
 
-// 返回上一页
+// 返回 → 订单详情页
 const handleBack = () => {
-  router.back()
+  router.push({ name: 'OrderDetailPage' })
 }
 
 // 返回

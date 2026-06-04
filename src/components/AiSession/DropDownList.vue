@@ -212,33 +212,34 @@ const closeSessionSlide = () => {
 }
 
 // 🔥 新增：会话操作（置顶 + 删除）
-// 置顶会话（完整对接示例逻辑）
+// 置顶会话（不修改本地对象 · 推荐版）
 const handleTopSession = async (session) => {
   try {
-    // 判断当前状态：已置顶 → 取消置顶；未置顶 → 置顶
-    if (Number(session.isTop) === 1) {
-      // 1. 调用后端【取消置顶】接口
-      await untopChatSession(session.sessionUuid)
-      // 2. 前端乐观更新
-      session.isTop = 0
-      session.topAt = null
-      ElMessage.success('已取消置顶')
+    const sessionUuid = session.sessionUuid;
+    // 直接判断传入对象的当前状态（仅做判断，不修改它）
+    const isNowTop = Number(session.isTop) === 1;
+
+    if (isNowTop) {
+      // 1. 调用后端取消置顶接口
+      await untopChatSession(sessionUuid);
+      // 2. 🔥 只更新 Pinia 源数据，不碰本地对象！
+      baseSessionStore.updateSession(sessionUuid, { isTop: 0, topAt: null });
+      ElMessage.success('已取消置顶');
     } else {
-      // 1. 调用后端【置顶】接口
-      await topChatSession(session.sessionUuid)
-      // 2. 前端乐观更新
-      session.isTop = 1
-      session.topAt = Date.now().toString()
-      ElMessage.success('会话已置顶')
+      // 1. 调用后端置顶接口
+      await topChatSession(sessionUuid);
+      // 2. 🔥 只更新 Pinia 源数据，不碰本地对象！
+      const topTime = Date.now().toString();
+      baseSessionStore.updateSession(sessionUuid, { isTop: 1, topAt: topTime });
+      ElMessage.success('会话已置顶');
     }
   } catch (err) {
-    ElMessage.error('操作失败，请重试')
-    console.error('置顶/取消置顶接口报错：', err)
+    ElMessage.error('操作失败，请重试');
+    console.error('置顶接口报错：', err);
   } finally {
-    // 无论成功失败，关闭侧滑
-    closeSessionSlide()
+    closeSessionSlide();
   }
-}
+};
 
 // 删除会话（使用项目 confirm 模态框 + 对接示例逻辑）
 const handleDeleteSession = (session) => {
