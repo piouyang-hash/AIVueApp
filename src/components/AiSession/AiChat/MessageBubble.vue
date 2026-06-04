@@ -40,7 +40,7 @@
           {{ item.content }}
         </template>
         <!-- AI消息：Markdown渲染 -->
-        <NewMarkdownViewer
+        <LatexMarkdownViewer
             v-else
             :markdown="item.content"
             :render-block="true"
@@ -97,6 +97,7 @@ import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
 import NewMarkdownViewer from "@/components/NewMarkdownViewer.vue";
 import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
 import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
+import LatexMarkdownViewer from "@/components/LatexMarkdownViewer.vue";
 
 // 1. Props 定义：🔥 已删除 index，只保留 item
 const props = defineProps({

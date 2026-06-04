@@ -43,7 +43,7 @@
           {{ item.source.content }}
         </template>
         <!-- 🔥 AI分片消息：Markdown渲染 -->
-        <NewMarkdownViewer
+        <LatexMarkdownViewer
             v-else
             :markdown="item.split.content"
             style="cursor: pointer; display: block"
@@ -66,6 +66,7 @@ import { useMessageStore } from '@/stores/messageStore'
 import {useBaseSessionStore} from "@/stores/AiChat/baseSessionStore.js";
 import {useAiMessageStore} from "@/stores/AiChat/session-related/aiMessageStore.js";
 import {useAiRoleStore} from "@/stores/AiChat/aiRoleStore.js";
+import LatexMarkdownViewer from "@/components/LatexMarkdownViewer.vue";
 
 // 1. 定义Props（补全规范定义）
 const props = defineProps({

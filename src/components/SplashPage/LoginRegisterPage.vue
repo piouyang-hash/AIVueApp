@@ -128,7 +128,7 @@ const handleLongPressRegister = (e) => {
       0 4px 12px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .skip-btn:hover {
@@ -242,7 +242,7 @@ const handleLongPressRegister = (e) => {
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   z-index: 1;
 }
 
@@ -311,7 +311,7 @@ const handleLongPressRegister = (e) => {
       rgba(245, 245, 255, 0.9)
   );
   color: #2a2e3a;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   border-radius: 12px;
   font-size: 17px;
   font-weight: 700;
@@ -327,7 +327,7 @@ const handleLongPressRegister = (e) => {
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   z-index: 1;
 }
 
